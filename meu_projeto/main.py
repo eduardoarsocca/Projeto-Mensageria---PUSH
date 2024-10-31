@@ -567,7 +567,7 @@ dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_a
 def enviar_email_aprovacao_regulatorio():
     try:
         if not apelidos_protocolo_aprovacao_reg:
-            print("Nenhum protocolo submetido para avaliação regulatória aprovado no período.")
+            print("Nenhum protocolo aprovado na regulatória no período.")
             return
 
         msg = MIMEMultipart("alternative")
