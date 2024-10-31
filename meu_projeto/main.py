@@ -25,7 +25,7 @@ api_password = os.getenv('API_PASSWORD')
 api_url = os.getenv("API_URL")
 
 # Configurações do e-mail
-enviar_para = ['eduardotestesvri@gmail.com']
+enviar_para = ['eduardotestesvri@gmail.com', 'beatriz.kinjo@svriglobal.com']
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
@@ -153,6 +153,8 @@ dim_protocolo = df_protocolo[[
     'data_recebimento_orcamento',
     'data_resposta_orcamento',
     'data_aprovacao_orcamento',
+    'data_submissao_regulatorio',
+    'data_aprovacao_regulatorio',
     'data_primeira_inclusao',
     'data_ultima_atualizacao',
     'meta_inclusao',
@@ -163,6 +165,7 @@ dim_protocolo = df_protocolo[[
     'nome_patrocinador',
     'status_contrato',
     'status_orcamento',
+    'status_regulatorio',
     'dados_patrocinador',
     'dados_cro_responsavel',
     'dados_aprovacao_anvisa',
@@ -192,8 +195,8 @@ df_generica_limpo_contrato = df_generica_limpo.copy()
 df_generica_limpo_orcamento = df_generica_limpo.copy()
 df_generica_limpo_contrato.rename(columns={'id': 'status_contrato', 'ds_descricao': 'contrato_status'}, inplace=True)
 df_generica_limpo_orcamento.rename(columns={'id': 'status_orcamento', 'ds_descricao': 'orcamento_status'}, inplace=True)
-print(df_generica_limpo_contrato.head())
-print(df_generica_limpo_orcamento.head())
+# print(df_generica_limpo_contrato.head())
+# print(df_generica_limpo_orcamento.head())
 
 # TODO: Merge Protocolo-Generica
 dim_protocolo = dim_protocolo.merge(df_generica_limpo_contrato, on='status_contrato', how='left')
@@ -220,6 +223,8 @@ colunas_data = ['data_cadastro',
     'data_recebimento_orcamento',
     'data_resposta_orcamento',
     'data_aprovacao_orcamento',
+    'data_submissao_regulatorio',
+    'data_aprovacao_regulatorio',
     'data_primeira_inclusao',
     'data_ultima_atualizacao']
 
@@ -389,3 +394,101 @@ enviar_email_aniversario()
 
 #--------------------------------------REGULATÓRIO-----------------------------------------------
 #TODO: Submissão Regulatório
+dim_regulatorio = dim_protocolo.copy()
+dim_regulatorio = dim_regulatorio[[
+    'apelido_protocolo',
+    'dados_patrocinador',
+    'dados_co_centro',
+    'status',
+    'data_submissao_regulatorio',
+    'status_regulatorio'
+]]
+
+filtro = dim_regulatorio['data_submissao_regulatorio'].notna()
+dim_regulatorio = dim_regulatorio.loc[filtro,:] 
+
+dim_regulatorio['data_submissao_regulatorio'] = pd.to_datetime(dim_regulatorio['data_submissao_regulatorio']).dt.normalize()
+
+df_generica_limpo_regulatorio = df_generica_limpo.copy()
+
+df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
+
+
+
+# Merge Regulatório-Generica
+dim_regulatorio = dim_regulatorio.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
+dim_regulatorio.drop(columns=['status_regulatorio'], inplace = True)
+status_interesse = ['Aguardando Ativação do Centro',
+       'Qualificado', 'Fase Contratual',
+       'Em apreciação Ética', 'Aprovado pelo CEP',
+       'Aguardando o Pacote Regulatório']
+
+dim_regulatorio = dim_regulatorio.query("status in @status_interesse")
+
+# Filtrar contratos assinados no mesmo mês do ano anterior
+dim_regulatorio_aniversario = dim_regulatorio[
+    (dim_regulatorio['data_submissao_regulatorio'].dt.month == mes_atual) 
+]
+
+apelidos_protocolo = dim_regulatorio_aniversario['apelido_protocolo'].tolist()
+apelidos_protocolo_str = ', '.join(apelidos_protocolo)
+data_protocolo = dim_regulatorio_aniversario['data_submissao_regulatorio'].tolist()
+data_protocolo_str = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+
+
+def filtrar_submissao_regulatorio(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['data_submissao_regulatorio'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_regulatorio_aniversario.empty:
+        return "Nenhum protocolo submetido para avaliação regulatória"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_regulatorio_aniversario.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+dim_regulatorio_aniversario_html = filtrar_submissao_regulatorio(dim_regulatorio_aniversario) 
+
+
+
+def enviar_email_submissao_regulatorio():
+    try:
+        if "Nenhum protocolo submetido para avaliação regulatória" in dim_regulatorio_aniversario_html:
+            print("Nenhum protocolo submetido para avaliação regulatória no período.")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_str} submetido para avaliação regulatória"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos Submetidos para avaliação regulatória </h2>
+                <p> O protocolo {apelidos_protocolo_str} foi submetido para avaliação regulatória na data {data_protocolo_str} </p>
+                <p>{dim_regulatorio_aniversario_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de submissão regulaória enviado com sucesso!")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_submissao_regulatorio()
