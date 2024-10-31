@@ -25,7 +25,7 @@ api_password = os.getenv('API_PASSWORD')
 api_url = os.getenv("API_URL")
 
 # Configurações do e-mail
-enviar_para = ['eduardotestesvri@gmail.com', 'beatriz.kinjo@svriglobal.com']
+enviar_para = ['eduardotestesvri@gmail.com']
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
@@ -431,9 +431,9 @@ dim_regulatorio_aniversario = dim_regulatorio[
 ]
 
 apelidos_protocolo = dim_regulatorio_aniversario['apelido_protocolo'].tolist()
-apelidos_protocolo_str = ', '.join(apelidos_protocolo)
+apelidos_protocolo_submissao_reg = ', '.join(apelidos_protocolo)
 data_protocolo = dim_regulatorio_aniversario['data_submissao_regulatorio'].tolist()
-data_protocolo_str = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+data_protocolo_submissao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
 
 
 def filtrar_submissao_regulatorio(dataframe, anos=3):
@@ -466,7 +466,7 @@ def enviar_email_submissao_regulatorio():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {apelidos_protocolo_str} submetido para avaliação regulatória"
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -474,7 +474,7 @@ def enviar_email_submissao_regulatorio():
             <head>{css_hover}</head>
             <body>
                 <h2>Protocolos Submetidos para avaliação regulatória </h2>
-                <p> O protocolo {apelidos_protocolo_str} foi submetido para avaliação regulatória na data {data_protocolo_str} </p>
+                <p> O protocolo {apelidos_protocolo_submissao_reg} foi submetido para avaliação regulatória na data {data_protocolo_submissao_reg} </p>
                 <p>{dim_regulatorio_aniversario_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
@@ -486,9 +486,116 @@ def enviar_email_submissao_regulatorio():
             server.starttls()
             server.login(username_email, password_email)
             server.send_message(msg)
-        print("E-mail de submissão regulaória enviado com sucesso!")
+        print("E-mail de submissao regulaória enviado com sucesso!")
         
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_submissao_regulatorio()
+
+#--------------------------------------REGULATÓRIO-----------------------------------------------
+#TODO: Aprovação Regulatória
+
+dim_regulatorio_aprovacao = dim_protocolo.copy()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[[
+    'apelido_protocolo',
+    'dados_patrocinador',
+    'dados_co_centro',
+    'status',
+    'data_aprovacao_regulatorio',
+    'status_regulatorio'
+]]
+
+filtro = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].notna()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.loc[filtro,:] 
+
+dim_regulatorio_aprovacao['data_aprovacao_regulatorio'] = pd.to_datetime(dim_regulatorio_aprovacao['data_aprovacao_regulatorio']).dt.normalize()
+
+df_generica_limpo_regulatorio = df_generica_limpo.copy()
+
+df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
+
+
+
+# Merge Regulatório-Generica
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
+dim_regulatorio_aprovacao.drop(columns=['status_regulatorio'], inplace = True)
+status_interesse = ['Aguardando Ativação do Centro',
+       'Qualificado', 'Fase Contratual',
+       'Em apreciação Ética', 'Aprovado pelo CEP',
+       'Aguardando o Pacote Regulatório']
+
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_interesse")
+
+# Filtrar contratos assinados no mesmo mês do ano anterior
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
+    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
+]
+
+apelidos_protocolo = dim_regulatorio_aprovacao['apelido_protocolo'].tolist()
+apelidos_protocolo_aprovacao_reg = ', '.join(apelidos_protocolo)
+data_protocolo = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].tolist()
+data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+
+if apelidos_protocolo_aprovacao_reg:
+    protocolo_info = f"<p> Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
+else:
+    protocolo_info = ""
+
+
+def filtrar_aprovacao_regulatorio(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['data_aprovacao_regulatorio'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_regulatorio_aprovacao.empty:
+        return "Nenhum protocolo submetido para avaliação regulatória"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_regulatorio_aprovacao.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
+
+
+
+def enviar_email_aprovacao_regulatorio():
+    try:
+        if not apelidos_protocolo_aprovacao_reg:
+            print("Nenhum protocolo submetido para avaliação regulatória aprovado no período.")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos aprovados pelo órgão regulatório </h2>
+                {protocolo_info}
+                <p>{dim_regulatorio_aprovacao_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de aprovacao regulaória enviado com sucesso!")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_aprovacao_regulatorio()
