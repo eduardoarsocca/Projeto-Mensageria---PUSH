@@ -35,7 +35,8 @@ port_email = int(os.getenv('EMAIL_PORT'))
 # TODO: funções globais
 # Obter o mês e o ano do mês atual menos 1 ano
 mes_atual = datetime.now().month - 0
-ano_anterior = datetime.now().year - 1 
+ano_anterior = datetime.now().year - 1
+proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
 
 # TODO: Configuração CSS
 css_hover = """
@@ -599,3 +600,8 @@ def enviar_email_aprovacao_regulatorio():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_aprovacao_regulatorio()
+
+#---------------------------VISITA DE ATIVAÇÃO DE CENTRO------------------------------------------
+# TODO: Site Initiation Visit (SIV)
+
+siv = dim_protocolo.copy()
