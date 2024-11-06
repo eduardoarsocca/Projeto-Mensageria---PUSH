@@ -605,3 +605,12 @@ enviar_email_aprovacao_regulatorio()
 # TODO: Site Initiation Visit (SIV)
 
 siv = dim_protocolo.copy()
+
+
+#------------------------------VISITA DE ENCERRAMENTO----------------------------------------------
+#TODO  Close-Out Visit (COV)
+cov = dim_protocolo.copy()
+
+#-----------------------------Assinatura do primeiro TCLE------------------------------------------
+#TODO  Assinatura do primeiro TCLE
+
