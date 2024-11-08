@@ -37,6 +37,7 @@ port_email = int(os.getenv('EMAIL_PORT'))
 mes_atual = datetime.now().month - 0
 ano_anterior = datetime.now().year - 1
 proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
+duas_ultimas_semanas = (datetime.now()-timedelta(days=200))
 
 # TODO: Configuração CSS
 css_hover = """
@@ -130,12 +131,26 @@ df_generica = pd.DataFrame(df_generica)
 df_generica_limpo=df_generica[['id', 'ds_descricao']]
 df_generica_limpo.head()
 
-#------------------------------------------PROTOCOLO---------------------------------------------- 
+#------------------------------------------ROTAS---------------------------------------------- 
+#TODO: Acesso Protocolos
 rota_protocolo = url_request+"/protocolo?nested=true"
 df_protocolo = requests.get(rota_protocolo, headers = headers).json()
 df_protocolo = pd.DataFrame(df_protocolo)
 
+#TODO: Acesso Participantes
+rota_participantes = url_request+"/participantes?nested=true"
+df_participantes = requests.get(rota_participantes, headers = headers).json()
+df_participantes = pd.DataFrame(df_participantes)
+
+#TODO: Acesso Participantes_visita
+rota_visita_procedimentos = url_request+"/power_bi_participante_visita_procedimento"
+df_visita_procedimentos = requests.get(rota_visita_procedimentos, headers = headers).json()
+df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
+
+#--------------------------------------TRATAMENTOS-----------------------------------------------
+#TODO: Tratamento Protocolos
 dim_protocolo = df_protocolo[[
+    'id',
     'apelido_protocolo',
     'data_cadastro',
     'data_visita_selecao',
@@ -613,4 +628,148 @@ cov = dim_protocolo.copy()
 
 #-----------------------------Assinatura do primeiro TCLE------------------------------------------
 #TODO  Assinatura do primeiro TCLE
+# PARTE 1 - CENTROS
+centros = dim_protocolo.copy()
 
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+# PARTE 2 - PARTICIPANTES
+dim_participantes = df_participantes.copy()
+dim_participantes = dim_participantes[[
+    'id',
+    'numero_de_randomizacao',
+    'Status',
+    'co_protocolo',
+    'dados_protocolo']]
+dim_participantes.rename(columns={
+    'id': 'id_participante',
+    'numero_de_randomizacao':'Participante',
+    'Status':'Status',
+    'co_protocolo':'id_protocolo',
+    'dados_protocolo': 'Protocolo'
+}, inplace=True)
+
+
+ultima_infomacao_pct = [
+    'Status',
+    'Protocolo'
+]
+for coluna in ultima_infomacao_pct:
+    dim_participantes[coluna] = dim_participantes[coluna].apply(extrair_ultima_informacao)
+    
+# PARTE 3 - PROCEDIMENTOS
+dim_visita_procedimentos = df_visita_procedimentos.copy()
+dim_visita_procedimentos=dim_visita_procedimentos[[
+                                                 'dados_participante_visita.co_participante',
+                                                 'dados_protocolo_procedimento.nome_procedimento_estudo',
+                                                 'data_executada'
+                                                 ]]
+dim_visita_procedimentos.rename(columns={
+    'dados_participante_visita.co_participante': 'id_participante',
+    'dados_protocolo_procedimento.nome_procedimento_estudo': 'Procedimento',
+    'data_executada': 'Data Executada'
+}, inplace = True)
+
+dim_visita_procedimentos['Data Executada']= pd.to_datetime(dim_visita_procedimentos['Data Executada'])
+
+dim_participantes = dim_participantes.merge(dim_visita_procedimentos, how = 'left', on='id_participante')
+dim_participantes = dim_participantes.merge(centros, how = 'left', on='id_protocolo')
+
+colunas_data = [
+    'Data Executada'
+]
+
+dim_participantes[colunas_data]=dim_participantes[colunas_data].apply(lambda x: pd.to_datetime(x, errors = 'coerce').dt.tz_localize(None).dt.date)
+dim_participantes['Data Executada']= pd.to_datetime(dim_participantes['Data Executada'])
+
+termos = [
+    'tcle', 
+    'Termo e Consentimento' ,
+    'Termo de Consentimento',
+    'Consentimento',
+    'Assentimento'
+    ]
+expressao = '|'.join(termos)
+
+dim_participantes = dim_participantes[dim_participantes['Procedimento'].str.contains(expressao, regex=True, na=False, case=False)]
+# Encontrando o primeiro indivíduo que realizou cada procedimento por protocolo
+primeiro_tcle_assinado = dim_participantes.loc[dim_participantes.groupby(['Protocolo', 'Procedimento'])['Data Executada'].idxmin()]
+    
+# # Filtrar contratos assinados no mesmo mês do ano anterior
+primeiro_tcle_assinado = primeiro_tcle_assinado[
+    (primeiro_tcle_assinado['Data Executada'] >= duas_ultimas_semanas)
+]
+
+nome_protocolo_primeiro_tcle_assinado = primeiro_tcle_assinado['Protocolo'].tolist()
+primeiro_tcle_assinado_reg = ', '.join(nome_protocolo_primeiro_tcle_assinado)
+data_primeiro_tcle_assinado = primeiro_tcle_assinado['Data Executada'].tolist()
+data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeiro_tcle_assinado])
+
+if not primeiro_tcle_assinado.empty:
+    tcle_info = f"<p> Protocolo {primeiro_tcle_assinado} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
+else:
+    tcle_info = ""
+
+
+def filtrar_primeiro_tcle_assinado(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Executada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if primeiro_tcle_assinado.empty:
+        return "Nenhum TCLE assinado até o presente momento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = primeiro_tcle_assinado.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+primeiro_tcle_assinadoo_html = filtrar_primeiro_tcle_assinado(primeiro_tcle_assinado) 
+
+
+
+def enviar_email_primeiro_tcle_assinado():
+    try:
+        if primeiro_tcle_assinado.empty:
+            print("Nenhum estudo com seu primeiro TCLE assinado no período")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_primeiro_tcle_assinado}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos aprovados pelo órgão regulatório </h2>
+                
+                <p>{primeiro_tcle_assinadoo_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Encontrados estudos com o primeiro TCLE Assinado")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_primeiro_tcle_assinado()
