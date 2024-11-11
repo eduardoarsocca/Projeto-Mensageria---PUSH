@@ -143,7 +143,12 @@ rota_participantes = url_request+"/participantes?nested=true"
 df_participantes = requests.get(rota_participantes, headers = headers).json()
 df_participantes = pd.DataFrame(df_participantes)
 
-#TODO: Acesso Participantes_visita
+#TODO: Acesso Participantes_visita (Agenda)
+rota_participante_visita = url_request+"/participante_visita?nested=true"
+df_participante_visita = requests.get(rota_participante_visita, headers=headers).json()
+df_participante_visita = pd.DataFrame(df_participante_visita)
+
+#TODO: Acesso Participantes_visita_procedimentos
 rota_visita_procedimentos = url_request+"/power_bi_participante_visita_procedimento"
 df_visita_procedimentos = requests.get(rota_visita_procedimentos, headers = headers).json()
 df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
@@ -707,7 +712,7 @@ dim_participantes = dim_participantes[dim_participantes['Procedimento'].str.cont
 # Encontrando o primeiro indivíduo que realizou cada procedimento por protocolo
 primeiro_tcle_assinado = dim_participantes.loc[dim_participantes.groupby(['Protocolo', 'Procedimento'])['Data Executada'].idxmin()]
     
-# # Filtrar contratos assinados no mesmo mês do ano anterior
+# # Filtrar para o primeiro TCLE de cada protocolo assinado nas duas ultimas semanas
 primeiro_tcle_assinado = primeiro_tcle_assinado[
     (primeiro_tcle_assinado['Data Executada'] >= duas_ultimas_semanas)
 ]
