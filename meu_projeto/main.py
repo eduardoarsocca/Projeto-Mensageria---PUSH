@@ -37,7 +37,8 @@ port_email = int(os.getenv('EMAIL_PORT'))
 mes_atual = datetime.now().month - 0
 ano_anterior = datetime.now().year - 1
 proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
-duas_ultimas_semanas = (datetime.now()-timedelta(days=200))
+duas_ultimas_semanas = (datetime.now()-timedelta(days=15))
+ultima_semana = (datetime.now() - timedelta(days=7))
 
 # TODO: Configuração CSS
 css_hover = """
@@ -146,6 +147,11 @@ df_participantes = pd.DataFrame(df_participantes)
 rota_visita_procedimentos = url_request+"/power_bi_participante_visita_procedimento"
 df_visita_procedimentos = requests.get(rota_visita_procedimentos, headers = headers).json()
 df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
+
+#TODO: Acesso Eventos Adversos
+rota_evento_adverso = url_request+"/evento_adverso?nested=true"
+df_evento_adverso = requests.get(rota_evento_adverso, headers = headers).json()
+df_evento_adverso = pd.DataFrame(df_evento_adverso)  
 
 #--------------------------------------TRATAMENTOS-----------------------------------------------
 #TODO: Tratamento Protocolos
@@ -747,7 +753,7 @@ def enviar_email_primeiro_tcle_assinado():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_primeiro_tcle_assinado}"
+        msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -772,4 +778,154 @@ def enviar_email_primeiro_tcle_assinado():
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
-enviar_email_primeiro_tcle_assinado()
+
+
+#------------------------Relato de Evento Adverso/ Evento Adverso Sério---------------------------
+#TODO  Relato de EA/EAS
+dim_evento_adverso = df_evento_adverso.copy()
+
+ultima_infomacao_ea = [
+    'dados_participante',
+    'dados_classificacao_evento',
+    'dados_protocolo',
+    'dados_centro',
+    'dados_status',
+    'dados_relacao_produto_investigacional',
+    'dados_intensidade',
+    'dados_classificacao',
+    'dados_tipo',
+    'dados_situacao_participante',
+    'dados_evento_esperado',
+    'dados_demanda_judicial',
+    'dados_participante_descontinuado'
+    
+]
+for coluna in ultima_infomacao_ea:
+    dim_evento_adverso[coluna] = dim_evento_adverso[coluna].apply(extrair_ultima_informacao)
+    
+dim_evento_adverso.rename(columns={
+    'dados_protocolo': 'Protocolo',
+    'dados_centro': 'Centro',
+    'dados_participante': 'Participante',
+    'dados_classificacao_evento': 'Classificação',
+    'dados_status': 'Status do EA',
+    'dados_relacao_produto_investigacional': 'Causalidade com o produto investigacional',
+    'dados_intensidade': 'Intensidade do Evento',
+    'dados_classificacao': 'Gravidade',
+    'dados_tipo':'Tipo',
+    'dados_situacao_participante': 'Situação do Participante',
+    'dados_evento_esperado': 'EA esperado?',
+    'dados_demanda_judicial': 'Houve demanda judicial?',
+    'dados_participante_descontinuado': 'Participante descontinuado?',
+    'data_do_evento':'Data do evento',
+    'data_de_report_farmacovigilancia': 'Data de report para farmacovigilância',
+    'data_de_report_cep': 'Data de report ao CEP',
+    'codigo': 'Código'
+}, inplace = True)
+
+dim_evento_adverso = dim_evento_adverso[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Código',
+    'Gravidade',
+    'Tipo',
+    'Intensidade do Evento',
+    'Causalidade com o produto investigacional',
+    'Situação do Participante',
+    'Participante descontinuado?',
+    'EA esperado?',
+    'Houve demanda judicial?',
+    'Status do EA',
+    'Data do evento',
+    'Data de report para farmacovigilância',
+    'Data de report ao CEP'
+]]
+
+colunas_data = [
+    'Data do evento',
+    'Data de report para farmacovigilância',
+    'Data de report ao CEP'
+]
+dim_evento_adverso[colunas_data] = dim_evento_adverso[colunas_data].apply(pd.to_datetime)
+
+dim_evento_adverso=dim_evento_adverso.dropna(subset=['Protocolo'])
+dim_evento_adverso=dim_evento_adverso.dropna(subset=['Data do evento'])
+
+# # Filtrar os EA/EAS que ocorreram nos últimos 7 dias
+data_ocorrencia_ea = dim_evento_adverso[
+    (dim_evento_adverso['Data do evento'] >= ultima_semana)
+]
+
+#-----#
+nome_protocolo_ea = dim_evento_adverso['Protocolo'].tolist()
+nome_protocolo_ea_reg = ', '.join(nome_protocolo_ea)
+
+
+#----#
+data_ea = dim_evento_adverso['Data do evento'].tolist()
+data_ea_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_ea])
+
+#-----#
+if not dim_evento_adverso.empty:
+    ea_info = f"<p> Relato de evento adverso: Protocolo {dim_evento_adverso}, Data: {data_protocolo_aprovacao_reg}"
+else:
+    ea_info = ""
+
+
+def filtrar_dim_evento_adverso(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data do evento'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_evento_adverso.empty:
+        return "Nenhum Evento Adverso notificado"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_evento_adverso.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso) 
+
+
+
+def enviar_email_primeiro_tcle_assinado():
+    try:
+        if dim_evento_adverso.empty:
+            print("Nenhum Evento Adverso notificado")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Eventos adversos relatados </h2>
+                
+                <p>{dim_evento_adverso_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Evento adverso relatado")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+
