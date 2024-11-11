@@ -778,7 +778,7 @@ def enviar_email_primeiro_tcle_assinado():
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
-
+enviar_email_primeiro_tcle_assinado()
 
 #------------------------Relato de Evento Adverso/ Evento Adverso Sério---------------------------
 #TODO  Relato de EA/EAS
@@ -853,7 +853,7 @@ dim_evento_adverso=dim_evento_adverso.dropna(subset=['Protocolo'])
 dim_evento_adverso=dim_evento_adverso.dropna(subset=['Data do evento'])
 
 # # Filtrar os EA/EAS que ocorreram nos últimos 7 dias
-data_ocorrencia_ea = dim_evento_adverso[
+dim_evento_adverso = dim_evento_adverso[
     (dim_evento_adverso['Data do evento'] >= ultima_semana)
 ]
 
@@ -868,7 +868,7 @@ data_ea_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_ea])
 
 #-----#
 if not dim_evento_adverso.empty:
-    ea_info = f"<p> Relato de evento adverso: Protocolo {dim_evento_adverso}, Data: {data_protocolo_aprovacao_reg}"
+    ea_info = f"<p> Relato de evento adverso: Protocolo {nome_protocolo_ea_reg}, Data: {data_ea_reg}"
 else:
     ea_info = ""
 
@@ -894,7 +894,7 @@ dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso)
 
 
 
-def enviar_email_primeiro_tcle_assinado():
+def enviar_email_evento_adverso():
     try:
         if dim_evento_adverso.empty:
             print("Nenhum Evento Adverso notificado")
@@ -927,5 +927,8 @@ def enviar_email_primeiro_tcle_assinado():
         
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_evento_adverso()
+
 
 
