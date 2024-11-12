@@ -35,6 +35,7 @@ port_email = int(os.getenv('EMAIL_PORT'))
 # TODO: funções globais
 # Obter o mês e o ano do mês atual menos 1 ano
 mes_atual = datetime.now().month - 0
+ano_atual = datetime.now().year
 ano_anterior = datetime.now().year - 1
 proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
 duas_ultimas_semanas = (datetime.now()-timedelta(days=15))
@@ -45,9 +46,11 @@ css_hover = """
 <style>
     tr:hover {
         background-color: #EC0E73 !important;
+        color: #FFFFFF;
     }
     div {
         margin: 40px 0px 40px 0 px;
+        overflow-x:auto;
     }
     h1 {
   font-size: 30px;
@@ -62,11 +65,14 @@ css_hover = """
     }
     
     th {
-        font-size: 12px;
+        font-size: 16px;
         font-weight: bold;
+        background-color: #041266;
+        color: #FFFFFF;
+        white-space: nowrap;
     }
     td {
-        font-size: 10px 
+        font-size: 14px 
     }
 </style>
 
@@ -556,6 +562,7 @@ dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_i
 
 # Filtrar contratos assinados no mesmo mês do ano anterior
 dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
+    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.year == ano_atual) & 
     (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
 ]
 
@@ -916,8 +923,8 @@ def enviar_email_evento_adverso():
             <head>{css_hover}</head>
             <body>
                 <h2>Eventos adversos relatados </h2>
-                
-                <p>{dim_evento_adverso_html}</p>
+                {ea_info}
+                <p style="overflow-x:auto;">{dim_evento_adverso_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
         </html>
@@ -935,5 +942,175 @@ def enviar_email_evento_adverso():
 
 enviar_email_evento_adverso()
 
+#------------------------Primeira visita do estudo---------------------------
+#TODO: Primeira Visita do Primeiro Paciente realizada (FPFV)
+# Obtendo os dados da agenda dos participantes
+fato_agenda = df_participante_visita.copy()
 
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+fato_agenda = fato_agenda[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
+
+## Renomeando as colunas para facil visualização no dataframe
+fato_agenda.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
+
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
+
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
+
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+
+# Merge dos 3 datasets para criar o dataframe final
+fato_agenda = fato_agenda.merge(dim_participantes, how = 'left', on='id_participante')
+fato_agenda = fato_agenda.merge(centros, how = 'left', on='id_protocolo')
+
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
+   
+]
+for coluna in colunas_a_extrair:
+    fato_agenda[coluna] = fato_agenda[coluna].apply(extrair_ultima_informacao)
+    
+# Tratamento da coluna de datas
+fato_agenda['Data da visita realizada']= pd.to_datetime(fato_agenda['Data da visita realizada']).dt.tz_localize(None)
+
+# tratando valores faltantes
+fato_agenda['Protocolo']=fato_agenda['Protocolo'].fillna('Indefinido')
+fato_agenda['Centro']=fato_agenda['Centro'].fillna('Indefinido')
+fato_agenda = fato_agenda.dropna(subset=['Data da visita realizada'])
+
+fato_agenda = fato_agenda[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
+
+# Primeira visita do estudo
+primeira_visita = fato_agenda.loc[fato_agenda.groupby(['Protocolo', 'Centro'])['Data da visita realizada'].idxmin()]
+
+
+# Selecionando o período a ser notificado
+primeira_visita = primeira_visita[
+    (primeira_visita['Data da visita realizada'] >= ultima_semana)
+]
+
+#Configurações para o E-MAIL
+# Filtrando os nomes de estudos que irão compor o titulo do e-mail
+protocolo_primeira_visita = primeira_visita['Protocolo'].tolist()
+protocolo_primeira_visita_reg = ', '.join(protocolo_primeira_visita)
+
+# Filtrando as datas das visitas que irão compor o titulo do e-mail
+data_primeira_visita = primeira_visita['Data da visita realizada'].tolist()
+data_primeira_visita_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeira_visita])
+
+# Texto do corpo do e-mail
+if not primeira_visita.empty:
+    primeira_visita_info = f"<p> Relato de evento adverso: Protocolo {protocolo_primeira_visita_reg}, Data: {data_primeira_visita_reg}"
+else:
+    primeira_visita_info = ""
+
+# Função para criar a tabela do corpo do email 
+def filtrar_primeira_visita(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if primeira_visita.empty:
+        return "Visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = primeira_visita.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+primeira_visita_html = filtrar_primeira_visita(primeira_visita)
+
+# Função de envio do e-mail
+def enviar_email_primeira_visita():
+    try:
+        if primeira_visita.empty:
+            print("Sem relato de primeira visita")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Eventos adversos relatados </h2>
+                {primeira_visita_info}
+                <p>{primeira_visita_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Relatos de primeira visita")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_primeira_visita()
 

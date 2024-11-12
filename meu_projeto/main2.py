@@ -144,7 +144,12 @@ rota_participantes = url_request+"/participantes?nested=true"
 df_participantes = requests.get(rota_participantes, headers = headers).json()
 df_participantes = pd.DataFrame(df_participantes)
 
-#TODO: Acesso Participantes_visita
+#TODO: Acesso Participantes_visita (Agenda)
+rota_participante_visita = url_request+"/participante_visita?nested=true"
+df_participante_visita = requests.get(rota_participante_visita, headers=headers).json()
+df_participante_visita = pd.DataFrame(df_participante_visita)
+
+#TODO: Acesso Participantes_visita_procedimentos
 rota_visita_procedimentos = url_request+"/power_bi_participante_visita_procedimento"
 df_visita_procedimentos = requests.get(rota_visita_procedimentos, headers = headers).json()
 df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
@@ -152,110 +157,68 @@ df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
 #TODO: Acesso Eventos Adversos
 rota_evento_adverso = url_request+"/evento_adverso?nested=true"
 df_evento_adverso = requests.get(rota_evento_adverso, headers = headers).json()
-df_evento_adverso = pd.DataFrame(df_evento_adverso)  
+df_evento_adverso = pd.DataFrame(df_evento_adverso) 
 
 
-#TODO  Relato de EA/EAS
-dim_evento_adverso = df_evento_adverso.copy()
+#TODO  Relato de 1ª visita
+#TODO: Aprovação Regulatória
 
-ultima_infomacao_ea = [
-    'dados_participante',
-    'dados_classificacao_evento',
-    'dados_protocolo',
-    'dados_centro',
-    'dados_status',
-    'dados_relacao_produto_investigacional',
-    'dados_intensidade',
-    'dados_classificacao',
-    'dados_tipo',
-    'dados_situacao_participante',
-    'dados_evento_esperado',
-    'dados_demanda_judicial',
-    'dados_participante_descontinuado'
-    
-]
-for coluna in ultima_infomacao_ea:
-    dim_evento_adverso[coluna] = dim_evento_adverso[coluna].apply(extrair_ultima_informacao)
-    
-dim_evento_adverso.rename(columns={
-    'dados_protocolo': 'Protocolo',
-    'dados_centro': 'Centro',
-    'dados_participante': 'Participante',
-    'dados_classificacao_evento': 'Classificação',
-    'dados_status': 'Status do EA',
-    'dados_relacao_produto_investigacional': 'Causalidade com o produto investigacional',
-    'dados_intensidade': 'Intensidade do Evento',
-    'dados_classificacao': 'Gravidade',
-    'dados_tipo':'Tipo',
-    'dados_situacao_participante': 'Situação do Participante',
-    'dados_evento_esperado': 'EA esperado?',
-    'dados_demanda_judicial': 'Houve demanda judicial?',
-    'dados_participante_descontinuado': 'Participante descontinuado?',
-    'data_do_evento':'Data do evento',
-    'data_de_report_farmacovigilancia': 'Data de report para farmacovigilância',
-    'data_de_report_cep': 'Data de report ao CEP',
-    'codigo': 'Código'
-}, inplace = True)
-
-dim_evento_adverso = dim_evento_adverso[[
-    'Protocolo',
-    'Centro',
-    'Participante',
-    'Código',
-    'Gravidade',
-    'Tipo',
-    'Intensidade do Evento',
-    'Causalidade com o produto investigacional',
-    'Situação do Participante',
-    'Participante descontinuado?',
-    'EA esperado?',
-    'Houve demanda judicial?',
-    'Status do EA',
-    'Data do evento',
-    'Data de report para farmacovigilância',
-    'Data de report ao CEP'
+dim_regulatorio_aprovacao = df_protocolo.copy()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[[
+    'apelido_protocolo',
+    'dados_patrocinador',
+    'dados_co_centro',
+    'status',
+    'data_aprovacao_regulatorio',
+    'status_regulatorio'
 ]]
 
-colunas_data = [
-    'Data do evento',
-    'Data de report para farmacovigilância',
-    'Data de report ao CEP'
+filtro = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].notna()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.loc[filtro,:] 
+
+dim_regulatorio_aprovacao['data_aprovacao_regulatorio'] = pd.to_datetime(dim_regulatorio_aprovacao['data_aprovacao_regulatorio']).dt.normalize()
+
+df_generica_limpo_regulatorio = df_generica_limpo.copy()
+
+df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
+
+
+
+# Merge Regulatório-Generica
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
+dim_regulatorio_aprovacao.drop(columns=['status_regulatorio'], inplace = True)
+status_interesse = ['Aguardando Ativação do Centro',
+       'Qualificado', 'Fase Contratual',
+       'Em apreciação Ética', 'Aprovado pelo CEP',
+       'Aguardando o Pacote Regulatório']
+
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_interesse")
+
+# Filtrar contratos assinados no mesmo mês do ano anterior
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
+    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
 ]
-dim_evento_adverso[colunas_data] = dim_evento_adverso[colunas_data].apply(pd.to_datetime)
 
-dim_evento_adverso=dim_evento_adverso.dropna(subset=['Protocolo'])
-dim_evento_adverso=dim_evento_adverso.dropna(subset=['Data do evento'])
+apelidos_protocolo = dim_regulatorio_aprovacao['apelido_protocolo'].tolist()
+apelidos_protocolo_aprovacao_reg = ', '.join(apelidos_protocolo)
+data_protocolo = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].tolist()
+data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
 
-# # Filtrar os EA/EAS que ocorreram nos últimos 7 dias
-dim_evento_adverso = dim_evento_adverso[
-    (dim_evento_adverso['Data do evento'] >= ultima_semana)
-]
-
-#-----#
-nome_protocolo_ea = dim_evento_adverso['Protocolo'].tolist()
-nome_protocolo_ea_reg = ', '.join(nome_protocolo_ea)
-
-
-#----#
-data_ea = dim_evento_adverso['Data do evento'].tolist()
-data_ea_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_ea])
-
-#-----#
-if not dim_evento_adverso.empty:
-    ea_info = f"<p> Relato de evento adverso: Protocolo {nome_protocolo_ea_reg}, Data: {data_ea_reg}"
+if apelidos_protocolo_aprovacao_reg:
+    protocolo_info = f"<p> Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
 else:
-    ea_info = ""
+    protocolo_info = ""
 
 
-def filtrar_dim_evento_adverso(dataframe, anos=3):
+def filtrar_aprovacao_regulatorio(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
-    dataframe = dataframe.loc[dataframe['Data do evento'].notna(), :]
+    dataframe = dataframe.loc[dataframe['data_aprovacao_regulatorio'].notna(), :]
 # Verificar se o DataFrame filtrado está vazio
-    if dim_evento_adverso.empty:
-        return "Nenhum Evento Adverso notificado"
+    if dim_regulatorio_aprovacao.empty:
+        return "Nenhum protocolo submetido para avaliação regulatória"
     else:
         # Formatar o DataFrame para exibição em HTML
-        dataframe_filtrado = dim_evento_adverso.style\
+        dataframe_filtrado = dim_regulatorio_aprovacao.style\
             .format(precision=3, thousands=".", decimal=',')\
             .format_index(str.upper, axis=1)\
             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
@@ -264,29 +227,29 @@ def filtrar_dim_evento_adverso(dataframe, anos=3):
         return dataframe_filtrado.to_html(index=False)
 
 # Chamando a função
-dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso) 
+dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
 
 
 
-def enviar_email_evento_adverso():
+def enviar_email_aprovacao_regulatorio():
     try:
-        if dim_evento_adverso.empty:
-            print("Nenhum Evento Adverso notificado")
+        if not apelidos_protocolo_aprovacao_reg:
+            print("Nenhum protocolo aprovado na regulatória no período.")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
         
         # Corpo do e-mail simplificado
         body = f"""
         <html>
             <head>{css_hover}</head>
             <body>
-                <h2>Eventos adversos relatados </h2>
-                
-                <p>{dim_evento_adverso_html}</p>
+                <h2>Protocolos aprovados pelo órgão regulatório </h2>
+                {protocolo_info}
+                <p>{dim_regulatorio_aprovacao_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
         </html>
@@ -297,9 +260,10 @@ def enviar_email_evento_adverso():
             server.starttls()
             server.login(username_email, password_email)
             server.send_message(msg)
-        print("Evento adverso relatado")
+        print("E-mail de aprovacao regulaória enviado com sucesso!")
         
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
-enviar_email_evento_adverso()
+enviar_email_aprovacao_regulatorio()
+print(dim_regulatorio_aprovacao_html)
