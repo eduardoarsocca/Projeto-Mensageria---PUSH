@@ -1114,3 +1114,160 @@ def enviar_email_primeira_visita():
 
 enviar_email_primeira_visita()
 
+#------------------------Visitas realizadas na semana---------------------------
+#TODO: Visitas realizadas na semana
+visitas_realizadas = df_participante_visita.copy()
+
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+visitas_realizadas = visitas_realizadas[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
+
+## Renomeando as colunas para facil visualização no dataframe
+visitas_realizadas.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
+
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
+
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
+
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+
+# Merge dos 3 datasets para criar o dataframe final
+visitas_realizadas = visitas_realizadas.merge(dim_participantes, how = 'left', on='id_participante')
+visitas_realizadas = visitas_realizadas.merge(centros, how = 'left', on='id_protocolo')
+
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
+   
+]
+for coluna in colunas_a_extrair:
+    visitas_realizadas[coluna] = visitas_realizadas[coluna].apply(extrair_ultima_informacao)
+    
+# Tratamento da coluna de datas
+visitas_realizadas['Data da visita realizada']= pd.to_datetime(visitas_realizadas['Data da visita realizada']).dt.tz_localize(None)
+
+# tratando valores faltantes
+visitas_realizadas['Protocolo']=visitas_realizadas['Protocolo'].fillna('Indefinido')
+visitas_realizadas['Centro']=visitas_realizadas['Centro'].fillna('Indefinido')
+visitas_realizadas = visitas_realizadas.dropna(subset=['Data da visita realizada'])
+
+visitas_realizadas = visitas_realizadas[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
+
+# Selecionando o período a ser notificado
+visitas_realizadas = visitas_realizadas[
+    (visitas_realizadas['Data da visita realizada'] >= ultima_semana)
+]
+
+# Primeira período para titulo do email
+visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada'].min().strftime('%d/%m/%Y')
+
+visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
+
+# Função para criar a tabela do corpo do email 
+def filtrar_visitas_realizadas(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if visitas_realizadas.empty:
+        return "Visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = visitas_realizadas.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+visitas_realizadas_html = filtrar_visitas_realizadas(visitas_realizadas)
+
+# Função de envio do e-mail
+def enviar_email_visitas_realizadas():
+    try:
+        if visitas_realizadas.empty:
+            print("Sem relato de visitas realizadas na semana")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}</h2>
+                <p>{visitas_realizadas_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_visitas_realizadas()
+#------------------------Visitas previstas para os próximos dias---------------------------
+#TODO: Próximas visitas

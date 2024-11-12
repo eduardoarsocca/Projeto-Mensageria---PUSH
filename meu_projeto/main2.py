@@ -35,6 +35,7 @@ port_email = int(os.getenv('EMAIL_PORT'))
 # TODO: funções globais
 # Obter o mês e o ano do mês atual menos 1 ano
 mes_atual = datetime.now().month - 0
+ano_atual = datetime.now().year
 ano_anterior = datetime.now().year - 1
 proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
 duas_ultimas_semanas = (datetime.now()-timedelta(days=15))
@@ -161,64 +162,114 @@ df_evento_adverso = pd.DataFrame(df_evento_adverso)
 
 
 #TODO  Relato de 1ª visita
-#TODO: Aprovação Regulatória
+visitas_realizadas = df_participante_visita.copy()
 
-dim_regulatorio_aprovacao = df_protocolo.copy()
-dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[[
-    'apelido_protocolo',
-    'dados_patrocinador',
-    'dados_co_centro',
-    'status',
-    'data_aprovacao_regulatorio',
-    'status_regulatorio'
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+visitas_realizadas = visitas_realizadas[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
 ]]
 
-filtro = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].notna()
-dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.loc[filtro,:] 
+## Renomeando as colunas para facil visualização no dataframe
+visitas_realizadas.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
 
-dim_regulatorio_aprovacao['data_aprovacao_regulatorio'] = pd.to_datetime(dim_regulatorio_aprovacao['data_aprovacao_regulatorio']).dt.normalize()
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
 
-df_generica_limpo_regulatorio = df_generica_limpo.copy()
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
 
-df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
 
+# Merge dos 3 datasets para criar o dataframe final
+visitas_realizadas = visitas_realizadas.merge(dim_participantes, how = 'left', on='id_participante')
+visitas_realizadas = visitas_realizadas.merge(centros, how = 'left', on='id_protocolo')
 
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
+   
+]
+for coluna in colunas_a_extrair:
+    visitas_realizadas[coluna] = visitas_realizadas[coluna].apply(extrair_ultima_informacao)
+    
+# Tratamento da coluna de datas
+visitas_realizadas['Data da visita realizada']= pd.to_datetime(visitas_realizadas['Data da visita realizada']).dt.tz_localize(None)
 
-# Merge Regulatório-Generica
-dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
-dim_regulatorio_aprovacao.drop(columns=['status_regulatorio'], inplace = True)
-status_interesse = ['Aguardando Ativação do Centro',
-       'Qualificado', 'Fase Contratual',
-       'Em apreciação Ética', 'Aprovado pelo CEP',
-       'Aguardando o Pacote Regulatório']
+# tratando valores faltantes
+visitas_realizadas['Protocolo']=visitas_realizadas['Protocolo'].fillna('Indefinido')
+visitas_realizadas['Centro']=visitas_realizadas['Centro'].fillna('Indefinido')
+visitas_realizadas = visitas_realizadas.dropna(subset=['Data da visita realizada'])
 
-dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_interesse")
+visitas_realizadas = visitas_realizadas[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
 
-# Filtrar contratos assinados no mesmo mês do ano anterior
-dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
-    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
+# Selecionando o período a ser notificado
+visitas_realizadas = visitas_realizadas[
+    (visitas_realizadas['Data da visita realizada'] >= ultima_semana)
 ]
 
-apelidos_protocolo = dim_regulatorio_aprovacao['apelido_protocolo'].tolist()
-apelidos_protocolo_aprovacao_reg = ', '.join(apelidos_protocolo)
-data_protocolo = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].tolist()
-data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+# Primeira período para titulo do email
+visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada'].min().strftime('%d/%m/%Y')
 
-if apelidos_protocolo_aprovacao_reg:
-    protocolo_info = f"<p> Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
-else:
-    protocolo_info = ""
+visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
 
-
-def filtrar_aprovacao_regulatorio(dataframe, anos=3):
+# Função para criar a tabela do corpo do email 
+def filtrar_visitas_realizadas(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
-    dataframe = dataframe.loc[dataframe['data_aprovacao_regulatorio'].notna(), :]
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
 # Verificar se o DataFrame filtrado está vazio
-    if dim_regulatorio_aprovacao.empty:
-        return "Nenhum protocolo submetido para avaliação regulatória"
+    if visitas_realizadas.empty:
+        return "Visitas não notificadas"
     else:
         # Formatar o DataFrame para exibição em HTML
-        dataframe_filtrado = dim_regulatorio_aprovacao.style\
+        dataframe_filtrado = visitas_realizadas.style\
             .format(precision=3, thousands=".", decimal=',')\
             .format_index(str.upper, axis=1)\
             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
@@ -227,29 +278,27 @@ def filtrar_aprovacao_regulatorio(dataframe, anos=3):
         return dataframe_filtrado.to_html(index=False)
 
 # Chamando a função
-dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
+visitas_realizadas_html = filtrar_visitas_realizadas(visitas_realizadas)
 
-
-
-def enviar_email_aprovacao_regulatorio():
+# Função de envio do e-mail
+def enviar_email_visitas_realizadas():
     try:
-        if not apelidos_protocolo_aprovacao_reg:
-            print("Nenhum protocolo aprovado na regulatória no período.")
+        if visitas_realizadas.empty:
+            print("Sem relato de visitas realizadas na semana")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
+        msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
         
         # Corpo do e-mail simplificado
         body = f"""
         <html>
             <head>{css_hover}</head>
             <body>
-                <h2>Protocolos aprovados pelo órgão regulatório </h2>
-                {protocolo_info}
-                <p>{dim_regulatorio_aprovacao_html}</p>
+                <h2>Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}</h2>
+                <p>{visitas_realizadas_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
         </html>
@@ -260,10 +309,9 @@ def enviar_email_aprovacao_regulatorio():
             server.starttls()
             server.login(username_email, password_email)
             server.send_message(msg)
-        print("E-mail de aprovacao regulaória enviado com sucesso!")
+        print(f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}")
         
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
-enviar_email_aprovacao_regulatorio()
-print(dim_regulatorio_aprovacao_html)
+enviar_email_visitas_realizadas()
