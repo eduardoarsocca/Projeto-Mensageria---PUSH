@@ -25,7 +25,7 @@ api_password = os.getenv('API_PASSWORD')
 api_url = os.getenv("API_URL")
 
 # Configurações do e-mail
-enviar_para = ['eduardotestesvri@gmail.com']
+enviar_para = ['eduardotestesvri@gmail.com', 'gleice.barros@svriglobal.com']
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
