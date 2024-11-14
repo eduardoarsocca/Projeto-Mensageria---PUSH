@@ -124,7 +124,7 @@ else:
     
     
     
-url_request = "https://api.polotrial.com"
+
 
 headers = {"Authorization": auth_token}
 
@@ -132,7 +132,7 @@ headers = {"Authorization": auth_token}
 #------------------------------------------GENÉRICA-----------------------------------------------
 # TODO: Generica
 
-rota_generica = url_request+"/generica?nested=true"
+rota_generica = api_url+"/generica?nested=true"
 df_generica = requests.get(rota_generica, headers = headers).json()
 df_generica = pd.DataFrame(df_generica)
 df_generica_limpo=df_generica[['id', 'ds_descricao']]
@@ -140,27 +140,27 @@ df_generica_limpo.head()
 
 #------------------------------------------ROTAS---------------------------------------------- 
 #TODO: Acesso Protocolos
-rota_protocolo = url_request+"/protocolo?nested=true"
+rota_protocolo = api_url+"/protocolo?nested=true"
 df_protocolo = requests.get(rota_protocolo, headers = headers).json()
 df_protocolo = pd.DataFrame(df_protocolo)
 
 #TODO: Acesso Participantes
-rota_participantes = url_request+"/participantes?nested=true"
+rota_participantes = api_url+"/participantes?nested=true"
 df_participantes = requests.get(rota_participantes, headers = headers).json()
 df_participantes = pd.DataFrame(df_participantes)
 
 #TODO: Acesso Participantes_visita (Agenda)
-rota_participante_visita = url_request+"/participante_visita?nested=true"
+rota_participante_visita = api_url+"/participante_visita?nested=true"
 df_participante_visita = requests.get(rota_participante_visita, headers=headers).json()
 df_participante_visita = pd.DataFrame(df_participante_visita)
 
 #TODO: Acesso Participantes_visita_procedimentos
-rota_visita_procedimentos = url_request+"/power_bi_participante_visita_procedimento"
+rota_visita_procedimentos = api_url+"/power_bi_participante_visita_procedimento"
 df_visita_procedimentos = requests.get(rota_visita_procedimentos, headers = headers).json()
 df_visita_procedimentos = pd.DataFrame(df_visita_procedimentos)
 
 #TODO: Acesso Eventos Adversos
-rota_evento_adverso = url_request+"/evento_adverso?nested=true"
+rota_evento_adverso = api_url+"/evento_adverso?nested=true"
 df_evento_adverso = requests.get(rota_evento_adverso, headers = headers).json()
 df_evento_adverso = pd.DataFrame(df_evento_adverso)  
 
