@@ -24,7 +24,7 @@ api_username = os.getenv('API_USERNAME')
 api_password = os.getenv('API_PASSWORD')
 api_url = os.getenv("API_URL")
 
-# Configurações do e-mail
+# TODO: Configurações do e-mail
 enviar_para = ['eduardotestesvri@gmail.com']
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
@@ -40,6 +40,8 @@ ano_anterior = datetime.now().year - 1
 proximas_duas_semanas = (datetime.now()+timedelta(days=15)).strftime('%Y-%m-%d')
 duas_ultimas_semanas = (datetime.now()-timedelta(days=15))
 ultima_semana = (datetime.now() - timedelta(days=7))
+proxima_semana = (datetime.now()+timedelta(days=7))
+amanha = (datetime.now()+timedelta(days=0))
 
 # TODO: Configuração CSS
 css_hover = """
@@ -1271,3 +1273,156 @@ def enviar_email_visitas_realizadas():
 enviar_email_visitas_realizadas()
 #------------------------Visitas previstas para os próximos dias---------------------------
 #TODO: Próximas visitas
+proximas_visitas = df_participante_visita.copy()
+
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+proximas_visitas = proximas_visitas[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_estimada',
+    'dados_status',
+]]
+
+## Renomeando as colunas para facil visualização no dataframe
+proximas_visitas.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_estimada':'Data Prevista',
+    'dados_status': 'Status da visita'
+}, inplace = True)
+
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
+
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
+
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+
+# Merge dos 3 datasets para criar o dataframe final
+proximas_visitas = proximas_visitas.merge(dim_participantes, how = 'left', on='id_participante')
+proximas_visitas = proximas_visitas.merge(centros, how = 'left', on='id_protocolo')
+
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
+   
+]
+for coluna in colunas_a_extrair:
+    proximas_visitas[coluna] = proximas_visitas[coluna].apply(extrair_ultima_informacao)
+    
+# Tratamento da coluna de datas
+proximas_visitas['Data Prevista']= pd.to_datetime(proximas_visitas['Data Prevista']).dt.tz_localize(None)
+
+# tratando valores faltantes
+proximas_visitas['Protocolo']=proximas_visitas['Protocolo'].fillna('Indefinido')
+proximas_visitas['Centro']=proximas_visitas['Centro'].fillna('Indefinido')
+proximas_visitas = proximas_visitas.dropna(subset=['Data Prevista'])
+
+proximas_visitas = proximas_visitas[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data Prevista'
+]]
+
+# Selecionando o período a ser notificado
+proximas_visitas = proximas_visitas[
+    (proximas_visitas['Data Prevista'] > amanha) & 
+    (proximas_visitas['Data Prevista']<= proxima_semana)
+].sort_values(by='Data Prevista', ascending = True)
+
+proximas_visitas_no_periodo_min = proximas_visitas['Data Prevista'].min().strftime('%d/%m/%Y')
+
+proximas_visitas_no_periodo_max =proximas_visitas['Data Prevista'].max().strftime('%d/%m/%Y')
+
+# Função para criar a tabela do corpo do email 
+def filtrar_proximas_visitas(dataframe):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Prevista'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if proximas_visitas.empty:
+        return "Próximas visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = proximas_visitas.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+proximas_visitas_html = filtrar_proximas_visitas(proximas_visitas)
+
+# Função de envio do e-mail
+def enviar_email_proximas_visitas():
+    try:
+        if proximas_visitas.empty:
+            print("Sem relato de visitas realizadas na semana")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}</h2>
+                <p>{proximas_visitas_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_proximas_visitas()
