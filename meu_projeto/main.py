@@ -1271,6 +1271,7 @@ def enviar_email_visitas_realizadas():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_visitas_realizadas()
+
 #------------------------Visitas previstas para os próximos dias---------------------------
 #TODO: Próximas visitas
 proximas_visitas = df_participante_visita.copy()
@@ -1426,3 +1427,183 @@ def enviar_email_proximas_visitas():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_proximas_visitas()
+
+#-------------------------------Ultima visita do estudo---------------------------------------
+#TODO: EOS ou EOT realizado
+
+eos_eot = df_participante_visita.copy()
+
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+eos_eot = eos_eot[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
+
+## Renomeando as colunas para facil visualização no dataframe
+eos_eot.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
+
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
+
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
+
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+
+# Merge dos 3 datasets para criar o dataframe final
+eos_eot = eos_eot.merge(dim_participantes, how = 'left', on='id_participante')
+eos_eot = eos_eot.merge(centros, how = 'left', on='id_protocolo')
+
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
+   
+]
+for coluna in colunas_a_extrair:
+    eos_eot[coluna] = eos_eot[coluna].apply(extrair_ultima_informacao)
+    
+# Tratamento da coluna de datas
+eos_eot['Data da visita realizada']= pd.to_datetime(eos_eot['Data da visita realizada']).dt.tz_localize(None)
+
+# tratando valores faltantes
+eos_eot['Protocolo']=eos_eot['Protocolo'].fillna('Indefinido')
+eos_eot['Centro']=eos_eot['Centro'].fillna('Indefinido')
+eos_eot = eos_eot.dropna(subset=['Data da visita realizada'])
+
+eos_eot = eos_eot[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
+
+filtros = ['EOS', 'EOT']
+
+eos_eot = eos_eot[
+    (eos_eot['Status do Participante'].isin(filtros)) &
+    (eos_eot['Data da visita realizada'] >= duas_ultimas_semanas)
+]
+
+eos_eot = eos_eot.sort_values(
+    by=[
+        'Protocolo',
+        'Centro',
+        'Participante',
+        'Data da visita realizada'
+    ], ascending=False
+)
+
+eos_eot=eos_eot.groupby(
+    [
+        'Protocolo',
+        'Centro',
+        'Participante'
+     ]
+).first().reset_index()
+
+# Primeira período para titulo do email
+if not eos_eot.empty:
+    eos_eot_no_periodo_min = eos_eot['Data da visita realizada'].min().strftime('%d/%m/%Y')
+    eos_eot_no_periodo_max = eos_eot['Data da visita realizada'].max().strftime('%d/%m/%Y')
+else:
+    eos_eot_no_periodo_min = None
+    eos_eot_no_periodo_max = None
+
+# Função para criar a tabela do corpo do email 
+def filtrar_eos_eot(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if eos_eot.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = eos_eot.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+eos_eot_html = filtrar_eos_eot(eos_eot)
+
+# Função de envio do e-mail
+def enviar_email_eos_eot():
+    try:
+        if eos_eot.empty:
+            print("Nada a declarar sobre alteração de status de participantes")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max} os seguintes participantes finalizaram o tratamento ou o estudo</h2>
+                <p>{eos_eot_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"EOS/EOT entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_eos_eot()
+
