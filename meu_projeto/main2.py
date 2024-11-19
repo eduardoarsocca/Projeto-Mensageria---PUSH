@@ -161,12 +161,11 @@ df_evento_adverso = requests.get(rota_evento_adverso, headers = headers).json()
 df_evento_adverso = pd.DataFrame(df_evento_adverso) 
 
 
-#TODO  Relato de 1ª visita
-visitas_realizadas = df_participante_visita.copy()
+proximas_visitas = df_participante_visita.copy()
 
 # Tratamento dos dados 
 ## selecionando os campos de interesse da agenda do participante
-visitas_realizadas = visitas_realizadas[[
+proximas_visitas = proximas_visitas[[
     'id',
     'co_participante',
     'nome_tarefa',
@@ -175,7 +174,7 @@ visitas_realizadas = visitas_realizadas[[
 ]]
 
 ## Renomeando as colunas para facil visualização no dataframe
-visitas_realizadas.rename(columns = {
+proximas_visitas.rename(columns = {
     'id':'id_agenda',
     'co_participante':'id_participante',
     'nome_tarefa':'visita',
@@ -218,8 +217,8 @@ centros = centros.rename(columns={
 })
 
 # Merge dos 3 datasets para criar o dataframe final
-visitas_realizadas = visitas_realizadas.merge(dim_participantes, how = 'left', on='id_participante')
-visitas_realizadas = visitas_realizadas.merge(centros, how = 'left', on='id_protocolo')
+proximas_visitas = proximas_visitas.merge(dim_participantes, how = 'left', on='id_participante')
+proximas_visitas = proximas_visitas.merge(centros, how = 'left', on='id_protocolo')
 
 # Extraindo as informações dos dicionários
 colunas_a_extrair = [
@@ -230,17 +229,17 @@ colunas_a_extrair = [
    
 ]
 for coluna in colunas_a_extrair:
-    visitas_realizadas[coluna] = visitas_realizadas[coluna].apply(extrair_ultima_informacao)
+    proximas_visitas[coluna] = proximas_visitas[coluna].apply(extrair_ultima_informacao)
     
 # Tratamento da coluna de datas
-visitas_realizadas['Data da visita realizada']= pd.to_datetime(visitas_realizadas['Data da visita realizada']).dt.tz_localize(None)
+proximas_visitas['Data da visita realizada']= pd.to_datetime(proximas_visitas['Data da visita realizada']).dt.tz_localize(None)
 
 # tratando valores faltantes
-visitas_realizadas['Protocolo']=visitas_realizadas['Protocolo'].fillna('Indefinido')
-visitas_realizadas['Centro']=visitas_realizadas['Centro'].fillna('Indefinido')
-visitas_realizadas = visitas_realizadas.dropna(subset=['Data da visita realizada'])
+proximas_visitas['Protocolo']=proximas_visitas['Protocolo'].fillna('Indefinido')
+proximas_visitas['Centro']=proximas_visitas['Centro'].fillna('Indefinido')
+proximas_visitas = proximas_visitas.dropna(subset=['Data da visita realizada'])
 
-visitas_realizadas = visitas_realizadas[[
+proximas_visitas = proximas_visitas[[
     'Protocolo',
     'Centro',
     'Participante',
@@ -251,25 +250,25 @@ visitas_realizadas = visitas_realizadas[[
 ]]
 
 # Selecionando o período a ser notificado
-visitas_realizadas = visitas_realizadas[
-    (visitas_realizadas['Data da visita realizada'] >= ultima_semana)
+proximas_visitas = proximas_visitas[
+    (proximas_visitas['Data da visita realizada'] >= ultima_semana)
 ]
 
 # Primeira período para titulo do email
-visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada'].min().strftime('%d/%m/%Y')
+proximas_visitas_no_periodo_min = proximas_visitas['Data da visita realizada'].min().strftime('%d/%m/%Y')
 
-visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
+proximas_visitas_no_periodo_max =proximas_visitas['Data da visita realizada'].max().strftime('%d/%m/%Y')
 
 # Função para criar a tabela do corpo do email 
-def filtrar_visitas_realizadas(dataframe, anos=3):
+def filtrar_proximas_visitas(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
     dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
 # Verificar se o DataFrame filtrado está vazio
-    if visitas_realizadas.empty:
-        return "Visitas não notificadas"
+    if proximas_visitas.empty:
+        return "Próximas visitas não notificadas"
     else:
         # Formatar o DataFrame para exibição em HTML
-        dataframe_filtrado = visitas_realizadas.style\
+        dataframe_filtrado = proximas_visitas.style\
             .format(precision=3, thousands=".", decimal=',')\
             .format_index(str.upper, axis=1)\
             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
@@ -278,27 +277,27 @@ def filtrar_visitas_realizadas(dataframe, anos=3):
         return dataframe_filtrado.to_html(index=False)
 
 # Chamando a função
-visitas_realizadas_html = filtrar_visitas_realizadas(visitas_realizadas)
+proximas_visitas_html = filtrar_proximas_visitas(proximas_visitas)
 
 # Função de envio do e-mail
-def enviar_email_visitas_realizadas():
+def enviar_email_proximas_visitas():
     try:
-        if visitas_realizadas.empty:
+        if proximas_visitas.empty:
             print("Sem relato de visitas realizadas na semana")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
+        msg['Subject'] = f"Visitas realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}"
         
         # Corpo do e-mail simplificado
         body = f"""
         <html>
             <head>{css_hover}</head>
             <body>
-                <h2>Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}</h2>
-                <p>{visitas_realizadas_html}</p>
+                <h2>Visitas realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}</h2>
+                <p>{proximas_visitas_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
         </html>
@@ -309,9 +308,9 @@ def enviar_email_visitas_realizadas():
             server.starttls()
             server.login(username_email, password_email)
             server.send_message(msg)
-        print(f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}")
+        print(f"Visitas realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}")
         
     except Exception as e:
         print(f"Erro ao enviar o e-mail: {e}")
 
-enviar_email_visitas_realizadas()
+enviar_email_proximas_visitas()
