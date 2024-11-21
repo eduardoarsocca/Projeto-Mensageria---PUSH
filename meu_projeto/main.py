@@ -192,6 +192,8 @@ dim_protocolo = df_protocolo[[
     'data_aprovacao_regulatorio',
     'data_primeira_inclusao',
     'data_ultima_atualizacao',
+    'data_siv',
+    'data_close_out',
     'meta_inclusao',
     'nu_meta_inclusao',
     'dados_co_centro',
@@ -261,7 +263,10 @@ colunas_data = ['data_cadastro',
     'data_submissao_regulatorio',
     'data_aprovacao_regulatorio',
     'data_primeira_inclusao',
-    'data_ultima_atualizacao']
+    'data_ultima_atualizacao',
+    'data_siv',
+    'data_close_out'
+    ]
 
 # Converte cada coluna de data separadamente para melhorar o desempenho
 for coluna in colunas_data:
@@ -639,12 +644,257 @@ enviar_email_aprovacao_regulatorio()
 #---------------------------VISITA DE ATIVAÇÃO DE CENTRO------------------------------------------
 # TODO: Site Initiation Visit (SIV)
 
-siv = dim_protocolo.copy()
+# Selecionando os dados
+siv = df_protocolo.copy()
+siv = siv[[
+    'data_siv',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'    
+]]
+
+# Tratamento das datas
+siv['data_siv']= pd.to_datetime(siv['data_siv']).dt.tz_localize(None)
+# Eliminando linhas vazia
+siv = siv.dropna(subset=['data_siv'])
+
+# Extraindo as informações dos dicionários 
+colunas_a_extrair=[
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'
+]
+
+for coluna in colunas_a_extrair:
+    siv[coluna] = siv[coluna].apply(extrair_ultima_informacao)
+    
+# Renomeando as colunas para composição da tabela final
+siv.rename(columns={
+    'data_siv': 'Data da SIV',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro':'Centro',
+    'dados_pi': 'Investigador Principal',
+    'dados_coordenador': 'Coordenador',
+    'dados_patrocinador':'Patrocinador',
+    'dados_cro_responsavel': 'CRO',
+    'dados_especialidade': 'Especialidade',
+    'dados_status_protocolo': 'Status do Protocolo',
+    }, inplace=True)
+
+# Aplicando filtro de período dos dados exibidos
+siv = siv[
+    (siv['Data da SIV'] > amanha) &
+    (siv['Data da SIV'] <= proximas_duas_semanas)
+].sort_values(by='Data da SIV', ascending = True)
+
+# Período para titulo do email
+if not siv.empty:
+    siv_no_periodo_min = siv['Data da SIV'].min().strftime('%d/%m/%Y')
+    siv_no_periodo_max = siv['Data da SIV'].max().strftime('%d/%m/%Y')
+else:
+    siv_no_periodo_min = None
+    siv_no_periodo_max = None
+    
+subject_email =(
+   f'SiV agendada na data {siv_no_periodo_min}'
+   if siv_no_periodo_min == siv_no_periodo_max
+   else f'SiVs agendadas nas datas {siv_no_periodo_min} e {siv_no_periodo_max}'
+)
+
+# Função para criar a tabela do corpo do email 
+def filtrar_siv(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da SIV'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if siv.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = siv.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+siv_html = filtrar_siv(siv)
+
+# Função de envio do e-mail
+def enviar_email_siv():
+    try:
+        if siv.empty:
+            print("Nada a declarar sobre alteração de status de participantes")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {siv_no_periodo_min} e {siv_no_periodo_max} foram agendadas as seguintes SIVs</h2>
+                <p>{siv_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"SIVs agendadas entre {siv_no_periodo_min} e {siv_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_siv()
+
 
 
 #------------------------------VISITA DE ENCERRAMENTO----------------------------------------------
 #TODO  Close-Out Visit (COV)
-cov = dim_protocolo.copy()
+# SELECIONANDO OS DADOS
+cov = df_protocolo.copy()
+cov = cov[[
+    'data_close_out',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'    
+]]
+
+# TRATAMENTO DA COLUNA DATAS
+cov['data_close_out']= pd.to_datetime(cov['data_close_out']).dt.tz_localize(None)
+
+#ELIMINANDO LINHAS NULAS
+cov = cov.dropna(subset=['data_close_out'])
+
+# EXTRAINDO DADOS DOS DICIONÁRIOS
+colunas_a_extrair=[
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'
+]
+
+for coluna in colunas_a_extrair:
+    cov[coluna] = cov[coluna].apply(extrair_ultima_informacao)
+
+# RENOMEANDO AS COLUNAS PARA A TABELA FINAL
+cov.rename(columns={
+    'data_close_out': 'Data da COV',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro':'Centro',
+    'dados_pi': 'Investigador Principal',
+    'dados_coordenador': 'Coordenador',
+    'dados_patrocinador':'Patrocinador',
+    'dados_cro_responsavel': 'CRO',
+    'dados_especialidade': 'Especialidade',
+    'dados_status_protocolo': 'Status do Protocolo',
+    }, inplace=True)
+
+# SELECIONANDO O PERÍODO
+cov = cov[
+    (cov['Data da COV'] > amanha) &
+    (cov['Data da COV'] <= proximas_duas_semanas)
+].sort_values(by='Data da COV', ascending = True)
+
+# SELECIONANDO A PRIMEIRA E ULTIMA DATA DO PERÍODO
+# Primeira período para titulo do email
+if not cov.empty:
+    cov_no_periodo_min = cov['Data da COV'].min().strftime('%d/%m/%Y')
+    cov_no_periodo_max = cov['Data da COV'].max().strftime('%d/%m/%Y')
+else:
+    cov_no_periodo_min = None
+    cov_no_periodo_max = None
+
+# CONFIGURANDO O TÍTULO DO E-MAIL
+subject_email =(
+   f'COV agendada na data {cov_no_periodo_min}'
+   if cov_no_periodo_min == cov_no_periodo_max
+   else f'covs agendadas nas datas {cov_no_periodo_min} e {cov_no_periodo_max}'
+)
+
+# Função para criar a tabela do corpo do email 
+def filtrar_cov(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da COV'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if cov.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = cov.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+cov_html = filtrar_cov(cov)
+
+# Função de envio do e-mail
+def enviar_email_cov():
+    try:
+        if cov.empty:
+            print("NENHUMA COV AGENDADA PARA AS PROXIMAS SEMANAS")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {cov_no_periodo_min} e {cov_no_periodo_max} foram agendadas as seguintes COVs</h2>
+                <p>{cov_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"covs agendadas entre {cov_no_periodo_min} e {cov_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_cov()
+
 
 #-----------------------------Assinatura do primeiro TCLE------------------------------------------
 #TODO  Assinatura do primeiro TCLE
