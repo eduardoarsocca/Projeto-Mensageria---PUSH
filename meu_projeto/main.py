@@ -42,6 +42,7 @@ duas_ultimas_semanas = (datetime.now()-timedelta(days=15))
 ultima_semana = (datetime.now() - timedelta(days=7))
 proxima_semana = (datetime.now()+timedelta(days=7))
 amanha = (datetime.now()+timedelta(days=0))
+ontem = (datetime.now()-timedelta(days=1))
 
 # TODO: Configuração CSS
 css_hover = """
@@ -166,6 +167,15 @@ rota_evento_adverso = api_url+"/evento_adverso?nested=true"
 df_evento_adverso = requests.get(rota_evento_adverso, headers = headers).json()
 df_evento_adverso = pd.DataFrame(df_evento_adverso)  
 
+# TODO: Flowchart
+rota_flowchart = api_url +"/protocolo_flowchart"
+df_flowchart = requests.get(rota_flowchart, headers = headers).json()
+df_flowchart = pd.DataFrame(df_flowchart)
+
+# TODO: Pessoas
+rota_pessoas = api_url + "/pessoas?nested=true"
+df_pessoas = requests.get(rota_pessoas, headers = headers).json()
+df_pessoas = pd.DataFrame(df_pessoas)
 #--------------------------------------TRATAMENTOS-----------------------------------------------
 #TODO: Tratamento Protocolos
 dim_protocolo = df_protocolo[[
@@ -1857,3 +1867,155 @@ def enviar_email_eos_eot():
 
 enviar_email_eos_eot()
 
+# TODO: Alteração de protocolos
+#Acessando as bases de dados
+flowchart = df_flowchart.copy()
+
+#Protocolo
+dim_protocolo_flowchart = df_protocolo[[
+    'id',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'nome_patrocinador',
+    'PessoaPI',
+    'status'
+    
+    ]].copy()
+
+colunas_a_extrair=[
+    'dados_co_centro',
+    'PessoaPI',
+    'status',
+    'nome_patrocinador'
+]
+
+for coluna in colunas_a_extrair:
+    dim_protocolo_flowchart[coluna] = dim_protocolo_flowchart[coluna].apply(extrair_ultima_informacao)
+
+dim_protocolo_flowchart.rename(columns={
+    'id':'co_protocolo',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro': 'Centro',
+    'nome_patrocinador': 'Patrocinador',
+    'PessoaPI': 'Investigador Principal',
+    'status': 'Status'
+    
+    }, inplace=True)
+
+dim_pessoas = df_pessoas[[
+    'id',
+    'ds_nome',
+    'dados_co_tipo_gn'
+    ]].copy()
+
+colunas_a_extrair=[
+    'dados_co_tipo_gn'
+]
+
+for coluna in colunas_a_extrair:
+    dim_pessoas[coluna] = dim_pessoas[coluna].apply(extrair_ultima_informacao)
+
+dim_pessoas.rename(columns={
+    'id':'aprovador',
+    'ds_nome':'Nome aprovador',
+    'dados_co_tipo_gn':'Função'
+    
+    }, inplace=True)
+
+# MERGE
+flowchart = flowchart.merge(dim_protocolo_flowchart, on='co_protocolo', how='left')
+flowchart = flowchart.merge(dim_pessoas, on='aprovador', how='left')
+
+# Tratamento
+flowchart.rename(columns={
+    'data_aprovacao': 'Data de aprovação do Flowchart'
+    
+    }, inplace=True)
+
+flowchart=flowchart[[
+    'Data de aprovação do Flowchart',
+    'Protocolo',
+    'Centro',
+    'Patrocinador',
+    'Investigador Principal',
+    'Status',
+    'Nome aprovador',
+    'Função'
+]]
+
+flowchart=flowchart.dropna(subset=['Data de aprovação do Flowchart', 'Protocolo'])
+flowchart['Data de aprovação do Flowchart']= pd.to_datetime(flowchart['Data de aprovação do Flowchart']).dt.tz_localize(None)
+
+flowchart = flowchart[
+    flowchart['Data de aprovação do Flowchart'] > ontem
+].sort_values(by='Data de aprovação do Flowchart', ascending = True)
+
+# Primeira período para titulo do email
+if not flowchart.empty:
+    flowchart_no_periodo_min = flowchart['Data de aprovação do Flowchart'].min().strftime('%d/%m/%Y')
+    flowchart_no_periodo_max = flowchart['Data de aprovação do Flowchart'].max().strftime('%d/%m/%Y')
+else:
+    flowchart_no_periodo_min = None
+    flowchart_no_periodo_max = None
+
+subject_email =(
+   f'Flowchart aprovado em {flowchart_no_periodo_min}'
+   if flowchart_no_periodo_min == flowchart_no_periodo_max
+   else f'Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
+)
+
+# Função para criar a tabela do corpo do email 
+def filtrar_flowchart(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data de aprovação do Flowchart'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if flowchart.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = flowchart.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+flowchart_html = filtrar_flowchart(flowchart)
+
+# Função de envio do e-mail
+def enviar_email_flowchart():
+    try:
+        if flowchart.empty:
+            print("NENHUMA FLOWCHART APROVADO NO PERÍODO")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max} foram aprovados os flowcharts</h2>
+                <p>{flowchart_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"flowcharts aprovados entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_flowchart()
