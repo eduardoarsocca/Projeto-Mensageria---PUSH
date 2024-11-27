@@ -33,7 +33,12 @@ api_password = os.getenv('API_PASSWORD')
 api_url = os.getenv("API_URL")
 
 # TODO: Configurações do e-mail
-enviar_para = ['eduardotestesvri@gmail.com']
+enviar_para = os.getenv('DESTINATARIO')
+print(f"Valor original do DESTINATARIO: {enviar_para}")
+if enviar_para:
+    enviar_para = [email.strip() for email in enviar_para.split(',')]
+else:
+    enviar_para = []
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
@@ -295,1741 +300,1741 @@ for coluna in colunas_data:
     
 #----------------------------------------CONTRATOS-----------------------------------------------
 
-# #--------------------------CONTRATOS SEM DATA DE ASSINATURA---------------------------------------
-# # TODO: Contratos sem data de assinatura
-# contrato = dim_protocolo.copy()
-# contrato = contrato[['apelido_protocolo',
-#                      'dados_co_centro',
-#                      'nome_patrocinador',
-#                      'status',
-#                      'data_assinatura_contrato',
-#                      'contrato_status'
-#                      ]]
+#--------------------------CONTRATOS SEM DATA DE ASSINATURA---------------------------------------
+# TODO: Contratos sem data de assinatura
+contrato = dim_protocolo.copy()
+contrato = contrato[['apelido_protocolo',
+                     'dados_co_centro',
+                     'nome_patrocinador',
+                     'status',
+                     'data_assinatura_contrato',
+                     'contrato_status'
+                     ]]
 
-# # filtro = contrato['data_assinatura_contrato'].isna() # Filtrando somente os contratos sem data de assinatura
-# # contrato_sem_data = contrato.loc[filtro,:] # Exibindo somente os contratos sem data de assinatura
+# filtro = contrato['data_assinatura_contrato'].isna() # Filtrando somente os contratos sem data de assinatura
+# contrato_sem_data = contrato.loc[filtro,:] # Exibindo somente os contratos sem data de assinatura
 
-# # contratostatus = ['Assinado']
-# # contrato_sem_data = contrato_sem_data.query("contrato_status in @contratostatus")
+# contratostatus = ['Assinado']
+# contrato_sem_data = contrato_sem_data.query("contrato_status in @contratostatus")
 
-# contrato_sem_data = contrato[
-#     contrato['data_assinatura_contrato'].isna() &
-#     contrato['contrato_status'].isin(['Assinado'])
-# ]
+contrato_sem_data = contrato[
+    contrato['data_assinatura_contrato'].isna() &
+    contrato['contrato_status'].isin(['Assinado'])
+]
 
-# # contrato_sem_data_html = contrato_sem_data.to_html(index=False)
+# contrato_sem_data_html = contrato_sem_data.to_html(index=False)
 
-# def filtrar_contratos_sem_data(dataframe):
-#     # Verificar se o DataFrame filtrado está vazio
-#     if dataframe.empty:
-#         return "Não há datas de contrato a serem inseridas."
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_formatado = dataframe.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+def filtrar_contratos_sem_data(dataframe):
+    # Verificar se o DataFrame filtrado está vazio
+    if dataframe.empty:
+        return "Não há datas de contrato a serem inseridas."
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_formatado = dataframe.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_formatado.to_html(index=False)
+        return dataframe_formatado.to_html(index=False)
     
-# # Usando a função
-# contrato_sem_data_html = filtrar_contratos_sem_data(contrato_sem_data)
+# Usando a função
+contrato_sem_data_html = filtrar_contratos_sem_data(contrato_sem_data)
 
 
-# def enviar_email():
-#     try:
-#         if "Não há datas de contrato" in contrato_sem_data_html:
-#             print("Nenhum contrato pendente para enviar.")
-#             return
+def enviar_email():
+    try:
+        if "Não há datas de contrato" in contrato_sem_data_html:
+            print("Nenhum contrato pendente para enviar.")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = "Contratos assinados sem data de assinatura"
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = "Contratos assinados sem data de assinatura"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Contratos assinados sem data de assinatura</h2>
-#                 {contrato_sem_data_html}
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Contratos assinados sem data de assinatura</h2>
+                {contrato_sem_data_html}
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("E-mail de datas de contrato enviado com sucesso!")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de datas de contrato enviado com sucesso!")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email()
-
-
-# #--------------------------CONTRATOS FAZENDO ANIVERSÁRIO---------------------------------------
-# # TODO: Aniversário de contrato
-# contrato_assinado = dim_protocolo.copy()
-# contrato_assinado = contrato_assinado[['apelido_protocolo',
-#                      'dados_co_centro',
-#                      'nome_patrocinador',
-#                      'status',
-#                      'data_assinatura_contrato',
-#                      'contrato_status'
-#                      ]]
-
-# filtro = contrato_assinado['data_assinatura_contrato'].notna()
-# contrato_assinado = contrato_assinado.loc[filtro,:] 
-
-# contrato_assinado['data_assinatura_contrato'] = pd.to_datetime(contrato_assinado['data_assinatura_contrato']).dt.normalize()
-
-# # Definir o intervalo de anos para a comparação (por exemplo, últimos 3 anos)
-# anos_interesse = [datetime.now().year - i for i in range(0, 4)]
+enviar_email()
 
 
-# # Filtrar contratos assinados no mesmo mês do ano anterior
-# contrato_assinado_aniversario = contrato_assinado[
-#     (contrato_assinado['data_assinatura_contrato'].dt.month == mes_atual) & 
-#     (contrato_assinado['data_assinatura_contrato'].dt.year.isin(anos_interesse))
-# ]
+#--------------------------CONTRATOS FAZENDO ANIVERSÁRIO---------------------------------------
+# TODO: Aniversário de contrato
+contrato_assinado = dim_protocolo.copy()
+contrato_assinado = contrato_assinado[['apelido_protocolo',
+                     'dados_co_centro',
+                     'nome_patrocinador',
+                     'status',
+                     'data_assinatura_contrato',
+                     'contrato_status'
+                     ]]
 
-# def filtrar_contratos_aniversario(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['data_assinatura_contrato'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if contrato_assinado_aniversario.empty:
-#         return "Não há contratos que completam aniversário no mês atual nos anos especificados."
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = contrato_assinado_aniversario.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+filtro = contrato_assinado['data_assinatura_contrato'].notna()
+contrato_assinado = contrato_assinado.loc[filtro,:] 
 
-#         return dataframe_filtrado.to_html(index=False)
+contrato_assinado['data_assinatura_contrato'] = pd.to_datetime(contrato_assinado['data_assinatura_contrato']).dt.normalize()
 
-# # Chamando a função
-# contrato_assinado_html = filtrar_contratos_aniversario(contrato_assinado, anos=3) 
+# Definir o intervalo de anos para a comparação (por exemplo, últimos 3 anos)
+anos_interesse = [datetime.now().year - i for i in range(0, 4)]
 
-# def enviar_email_aniversario():
-#     try:
-#         if "Não há contratos que completam aniversário" in contrato_assinado_html:
-#             print("Nenhum contrato completando aniversário este mês.")
-#             return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = "Aniversário de contratos"
+# Filtrar contratos assinados no mesmo mês do ano anterior
+contrato_assinado_aniversario = contrato_assinado[
+    (contrato_assinado['data_assinatura_contrato'].dt.month == mes_atual) & 
+    (contrato_assinado['data_assinatura_contrato'].dt.year.isin(anos_interesse))
+]
+
+def filtrar_contratos_aniversario(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['data_assinatura_contrato'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if contrato_assinado_aniversario.empty:
+        return "Não há contratos que completam aniversário no mês atual nos anos especificados."
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = contrato_assinado_aniversario.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+contrato_assinado_html = filtrar_contratos_aniversario(contrato_assinado, anos=3) 
+
+def enviar_email_aniversario():
+    try:
+        if "Não há contratos que completam aniversário" in contrato_assinado_html:
+            print("Nenhum contrato completando aniversário este mês.")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = "Aniversário de contratos"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Contratos completando aniversário neste mês</h2>
-#                 {contrato_assinado_html}
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Contratos completando aniversário neste mês</h2>
+                {contrato_assinado_html}
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("E-mail de aniversário enviado com sucesso!")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de aniversário enviado com sucesso!")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_aniversario()
-
-
-# #--------------------------------------REGULATÓRIO-----------------------------------------------
-# #TODO: Submissão Regulatório
-# dim_regulatorio = dim_protocolo.copy()
-# dim_regulatorio = dim_regulatorio[[
-#     'apelido_protocolo',
-#     'dados_patrocinador',
-#     'dados_co_centro',
-#     'status',
-#     'data_submissao_regulatorio',
-#     'status_regulatorio'
-# ]]
-
-# filtro = dim_regulatorio['data_submissao_regulatorio'].notna()
-# dim_regulatorio = dim_regulatorio.loc[filtro,:] 
-
-# dim_regulatorio['data_submissao_regulatorio'] = pd.to_datetime(dim_regulatorio['data_submissao_regulatorio']).dt.normalize()
-
-# df_generica_limpo_regulatorio = df_generica_limpo.copy()
-
-# df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
+enviar_email_aniversario()
 
 
+#--------------------------------------REGULATÓRIO-----------------------------------------------
+#TODO: Submissão Regulatório
+dim_regulatorio = dim_protocolo.copy()
+dim_regulatorio = dim_regulatorio[[
+    'apelido_protocolo',
+    'dados_patrocinador',
+    'dados_co_centro',
+    'status',
+    'data_submissao_regulatorio',
+    'status_regulatorio'
+]]
 
-# # Merge Regulatório-Generica
-# dim_regulatorio = dim_regulatorio.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
-# dim_regulatorio.drop(columns=['status_regulatorio'], inplace = True)
-# status_interesse = ['Aguardando Ativação do Centro',
-#        'Qualificado', 'Fase Contratual',
-#        'Em apreciação Ética', 'Aprovado pelo CEP',
-#        'Aguardando o Pacote Regulatório']
+filtro = dim_regulatorio['data_submissao_regulatorio'].notna()
+dim_regulatorio = dim_regulatorio.loc[filtro,:] 
 
-# dim_regulatorio = dim_regulatorio.query("status in @status_interesse")
+dim_regulatorio['data_submissao_regulatorio'] = pd.to_datetime(dim_regulatorio['data_submissao_regulatorio']).dt.normalize()
 
-# # Filtrar contratos assinados no mesmo mês do ano anterior
-# dim_regulatorio_aniversario = dim_regulatorio[
-#     (dim_regulatorio['data_submissao_regulatorio'].dt.month == mes_atual) 
-# ]
+df_generica_limpo_regulatorio = df_generica_limpo.copy()
 
-# apelidos_protocolo = dim_regulatorio_aniversario['apelido_protocolo'].tolist()
-# apelidos_protocolo_submissao_reg = ', '.join(apelidos_protocolo)
-# data_protocolo = dim_regulatorio_aniversario['data_submissao_regulatorio'].tolist()
-# data_protocolo_submissao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
-
-
-# def filtrar_submissao_regulatorio(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['data_submissao_regulatorio'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if dim_regulatorio_aniversario.empty:
-#         return "Nenhum protocolo submetido para avaliação regulatória"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = dim_regulatorio_aniversario.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
-
-#         return dataframe_filtrado.to_html(index=False)
-
-# # Chamando a função
-# dim_regulatorio_aniversario_html = filtrar_submissao_regulatorio(dim_regulatorio_aniversario) 
+df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
 
 
 
-# def enviar_email_submissao_regulatorio():
-#     try:
-#         if "Nenhum protocolo submetido para avaliação regulatória" in dim_regulatorio_aniversario_html:
-#             print("Nenhum protocolo submetido para avaliação regulatória no período.")
-#             return
+# Merge Regulatório-Generica
+dim_regulatorio = dim_regulatorio.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
+dim_regulatorio.drop(columns=['status_regulatorio'], inplace = True)
+status_interesse = ['Aguardando Ativação do Centro',
+       'Qualificado', 'Fase Contratual',
+       'Em apreciação Ética', 'Aprovado pelo CEP',
+       'Aguardando o Pacote Regulatório']
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
+dim_regulatorio = dim_regulatorio.query("status in @status_interesse")
+
+# Filtrar contratos assinados no mesmo mês do ano anterior
+dim_regulatorio_aniversario = dim_regulatorio[
+    (dim_regulatorio['data_submissao_regulatorio'].dt.month == mes_atual) 
+]
+
+apelidos_protocolo = dim_regulatorio_aniversario['apelido_protocolo'].tolist()
+apelidos_protocolo_submissao_reg = ', '.join(apelidos_protocolo)
+data_protocolo = dim_regulatorio_aniversario['data_submissao_regulatorio'].tolist()
+data_protocolo_submissao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+
+
+def filtrar_submissao_regulatorio(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['data_submissao_regulatorio'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_regulatorio_aniversario.empty:
+        return "Nenhum protocolo submetido para avaliação regulatória"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_regulatorio_aniversario.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+dim_regulatorio_aniversario_html = filtrar_submissao_regulatorio(dim_regulatorio_aniversario) 
+
+
+
+def enviar_email_submissao_regulatorio():
+    try:
+        if "Nenhum protocolo submetido para avaliação regulatória" in dim_regulatorio_aniversario_html:
+            print("Nenhum protocolo submetido para avaliação regulatória no período.")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Protocolos Submetidos para avaliação regulatória </h2>
-#                 <p> O protocolo {apelidos_protocolo_submissao_reg} foi submetido para avaliação regulatória na data {data_protocolo_submissao_reg} </p>
-#                 <p>{dim_regulatorio_aniversario_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos Submetidos para avaliação regulatória </h2>
+                <p> O protocolo {apelidos_protocolo_submissao_reg} foi submetido para avaliação regulatória na data {data_protocolo_submissao_reg} </p>
+                <p>{dim_regulatorio_aniversario_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("E-mail de submissao regulaória enviado com sucesso!")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de submissao regulaória enviado com sucesso!")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_submissao_regulatorio()
+enviar_email_submissao_regulatorio()
 
-# #--------------------------------------REGULATÓRIO-----------------------------------------------
-# #TODO: Aprovação Regulatória
+#--------------------------------------REGULATÓRIO-----------------------------------------------
+#TODO: Aprovação Regulatória
 
-# dim_regulatorio_aprovacao = dim_protocolo.copy()
-# dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[[
-#     'apelido_protocolo',
-#     'dados_patrocinador',
-#     'dados_co_centro',
-#     'status',
-#     'data_aprovacao_regulatorio',
-#     'status_regulatorio'
-# ]]
+dim_regulatorio_aprovacao = dim_protocolo.copy()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[[
+    'apelido_protocolo',
+    'dados_patrocinador',
+    'dados_co_centro',
+    'status',
+    'data_aprovacao_regulatorio',
+    'status_regulatorio'
+]]
 
-# filtro = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].notna()
-# dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.loc[filtro,:] 
+filtro = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].notna()
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.loc[filtro,:] 
 
-# dim_regulatorio_aprovacao['data_aprovacao_regulatorio'] = pd.to_datetime(dim_regulatorio_aprovacao['data_aprovacao_regulatorio']).dt.normalize()
+dim_regulatorio_aprovacao['data_aprovacao_regulatorio'] = pd.to_datetime(dim_regulatorio_aprovacao['data_aprovacao_regulatorio']).dt.normalize()
 
-# df_generica_limpo_regulatorio = df_generica_limpo.copy()
+df_generica_limpo_regulatorio = df_generica_limpo.copy()
 
-# df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
-
-
-
-# # Merge Regulatório-Generica
-# dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
-# dim_regulatorio_aprovacao.drop(columns=['status_regulatorio'], inplace = True)
-# status_interesse = ['Aguardando Ativação do Centro',
-#        'Qualificado', 'Fase Contratual',
-#        'Em apreciação Ética', 'Aprovado pelo CEP',
-#        'Aguardando o Pacote Regulatório']
-
-# dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_interesse")
-
-# # Filtrar contratos assinados no mesmo mês do ano anterior
-# dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
-#     (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.year == ano_atual) & 
-#     (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
-# ]
-
-# apelidos_protocolo = dim_regulatorio_aprovacao['apelido_protocolo'].tolist()
-# apelidos_protocolo_aprovacao_reg = ', '.join(apelidos_protocolo)
-# data_protocolo = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].tolist()
-# data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
-
-# if apelidos_protocolo_aprovacao_reg:
-#     protocolo_info = f"<p> Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
-# else:
-#     protocolo_info = ""
-
-
-# def filtrar_aprovacao_regulatorio(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['data_aprovacao_regulatorio'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if dim_regulatorio_aprovacao.empty:
-#         return "Nenhum protocolo submetido para avaliação regulatória"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = dim_regulatorio_aprovacao.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
-
-#         return dataframe_filtrado.to_html(index=False)
-
-# # Chamando a função
-# dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
+df_generica_limpo_regulatorio.rename(columns={'id': 'status_regulatorio', 'ds_descricao': 'regulatorio_status'}, inplace=True)
 
 
 
-# def enviar_email_aprovacao_regulatorio():
-#     try:
-#         if not apelidos_protocolo_aprovacao_reg:
-#             print("Nenhum protocolo aprovado na regulatória no período.")
-#             return
+# Merge Regulatório-Generica
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.merge(df_generica_limpo_regulatorio, on='status_regulatorio', how='left')
+dim_regulatorio_aprovacao.drop(columns=['status_regulatorio'], inplace = True)
+status_interesse = ['Aguardando Ativação do Centro',
+       'Qualificado', 'Fase Contratual',
+       'Em apreciação Ética', 'Aprovado pelo CEP',
+       'Aguardando o Pacote Regulatório']
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao.query("status in @status_interesse")
+
+# Filtrar contratos assinados no mesmo mês do ano anterior
+dim_regulatorio_aprovacao = dim_regulatorio_aprovacao[
+    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.year == ano_atual) & 
+    (dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].dt.month == mes_atual) 
+]
+
+apelidos_protocolo = dim_regulatorio_aprovacao['apelido_protocolo'].tolist()
+apelidos_protocolo_aprovacao_reg = ', '.join(apelidos_protocolo)
+data_protocolo = dim_regulatorio_aprovacao['data_aprovacao_regulatorio'].tolist()
+data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_protocolo])
+
+if apelidos_protocolo_aprovacao_reg:
+    protocolo_info = f"<p> Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
+else:
+    protocolo_info = ""
+
+
+def filtrar_aprovacao_regulatorio(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['data_aprovacao_regulatorio'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_regulatorio_aprovacao.empty:
+        return "Nenhum protocolo submetido para avaliação regulatória"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_regulatorio_aprovacao.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
+
+
+
+def enviar_email_aprovacao_regulatorio():
+    try:
+        if not apelidos_protocolo_aprovacao_reg:
+            print("Nenhum protocolo aprovado na regulatória no período.")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Protocolos aprovados pelo órgão regulatório </h2>
-#                 {protocolo_info}
-#                 <p>{dim_regulatorio_aprovacao_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos aprovados pelo órgão regulatório </h2>
+                {protocolo_info}
+                <p>{dim_regulatorio_aprovacao_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("E-mail de aprovacao regulaória enviado com sucesso!")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("E-mail de aprovacao regulaória enviado com sucesso!")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_aprovacao_regulatorio()
+enviar_email_aprovacao_regulatorio()
 
-# #---------------------------VISITA DE ATIVAÇÃO DE CENTRO------------------------------------------
-# # TODO: Site Initiation Visit (SIV)
+#---------------------------VISITA DE ATIVAÇÃO DE CENTRO------------------------------------------
+# TODO: Site Initiation Visit (SIV)
 
-# # Selecionando os dados
-# siv = df_protocolo.copy()
-# siv = siv[[
-#     'data_siv',
-#     'apelido_protocolo',
-#     'dados_co_centro',
-#     'dados_pi',
-#     'dados_coordenador',
-#     'dados_patrocinador',
-#     'dados_cro_responsavel',
-#     'dados_especialidade',
-#     'dados_status_protocolo'    
-# ]]
+# Selecionando os dados
+siv = df_protocolo.copy()
+siv = siv[[
+    'data_siv',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'    
+]]
 
-# # Tratamento das datas
-# siv['data_siv']= pd.to_datetime(siv['data_siv']).dt.tz_localize(None)
-# # Eliminando linhas vazia
-# siv = siv.dropna(subset=['data_siv'])
+# Tratamento das datas
+siv['data_siv']= pd.to_datetime(siv['data_siv']).dt.tz_localize(None)
+# Eliminando linhas vazia
+siv = siv.dropna(subset=['data_siv'])
 
-# # Extraindo as informações dos dicionários 
-# colunas_a_extrair=[
-#     'dados_co_centro',
-#     'dados_pi',
-#     'dados_coordenador',
-#     'dados_patrocinador',
-#     'dados_cro_responsavel',
-#     'dados_especialidade',
-#     'dados_status_protocolo'
-# ]
+# Extraindo as informações dos dicionários 
+colunas_a_extrair=[
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'
+]
 
-# for coluna in colunas_a_extrair:
-#     siv[coluna] = siv[coluna].apply(extrair_ultima_informacao)
+for coluna in colunas_a_extrair:
+    siv[coluna] = siv[coluna].apply(extrair_ultima_informacao)
     
-# # Renomeando as colunas para composição da tabela final
-# siv.rename(columns={
-#     'data_siv': 'Data da SIV',
-#     'apelido_protocolo': 'Protocolo',
-#     'dados_co_centro':'Centro',
-#     'dados_pi': 'Investigador Principal',
-#     'dados_coordenador': 'Coordenador',
-#     'dados_patrocinador':'Patrocinador',
-#     'dados_cro_responsavel': 'CRO',
-#     'dados_especialidade': 'Especialidade',
-#     'dados_status_protocolo': 'Status do Protocolo',
-#     }, inplace=True)
+# Renomeando as colunas para composição da tabela final
+siv.rename(columns={
+    'data_siv': 'Data da SIV',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro':'Centro',
+    'dados_pi': 'Investigador Principal',
+    'dados_coordenador': 'Coordenador',
+    'dados_patrocinador':'Patrocinador',
+    'dados_cro_responsavel': 'CRO',
+    'dados_especialidade': 'Especialidade',
+    'dados_status_protocolo': 'Status do Protocolo',
+    }, inplace=True)
 
-# # Aplicando filtro de período dos dados exibidos
-# siv = siv[
-#     (siv['Data da SIV'] > amanha) &
-#     (siv['Data da SIV'] <= proximas_duas_semanas)
-# ].sort_values(by='Data da SIV', ascending = True)
+# Aplicando filtro de período dos dados exibidos
+siv = siv[
+    (siv['Data da SIV'] > amanha) &
+    (siv['Data da SIV'] <= proximas_duas_semanas)
+].sort_values(by='Data da SIV', ascending = True)
 
-# # Período para titulo do email
-# if not siv.empty:
-#     siv_no_periodo_min = siv['Data da SIV'].min().strftime('%d/%m/%Y')
-#     siv_no_periodo_max = siv['Data da SIV'].max().strftime('%d/%m/%Y')
-# else:
-#     siv_no_periodo_min = None
-#     siv_no_periodo_max = None
+# Período para titulo do email
+if not siv.empty:
+    siv_no_periodo_min = siv['Data da SIV'].min().strftime('%d/%m/%Y')
+    siv_no_periodo_max = siv['Data da SIV'].max().strftime('%d/%m/%Y')
+else:
+    siv_no_periodo_min = None
+    siv_no_periodo_max = None
     
-# subject_email =(
-#    f'SiV agendada na data {siv_no_periodo_min}'
-#    if siv_no_periodo_min == siv_no_periodo_max
-#    else f'SiVs agendadas nas datas {siv_no_periodo_min} e {siv_no_periodo_max}'
-# )
+subject_email =(
+   f'SiV agendada na data {siv_no_periodo_min}'
+   if siv_no_periodo_min == siv_no_periodo_max
+   else f'SiVs agendadas nas datas {siv_no_periodo_min} e {siv_no_periodo_max}'
+)
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_siv(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data da SIV'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if siv.empty:
-#         return "Nenhum participante finalizou o estudo ou o tratamento"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = siv.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_siv(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da SIV'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if siv.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = siv.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# siv_html = filtrar_siv(siv)
+# Chamando a função
+siv_html = filtrar_siv(siv)
 
-# # Função de envio do e-mail
-# def enviar_email_siv():
-#     try:
-#         if siv.empty:
-#             print("Nada a declarar sobre alteração de status de participantes")
-#             return
+# Função de envio do e-mail
+def enviar_email_siv():
+    try:
+        if siv.empty:
+            print("Nada a declarar sobre alteração de status de participantes")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = subject_email
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>No período entre {siv_no_periodo_min} e {siv_no_periodo_max} foram agendadas as seguintes SIVs</h2>
-#                 <p>{siv_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {siv_no_periodo_min} e {siv_no_periodo_max} foram agendadas as seguintes SIVs</h2>
+                <p>{siv_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"SIVs agendadas entre {siv_no_periodo_min} e {siv_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"SIVs agendadas entre {siv_no_periodo_min} e {siv_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_siv()
+enviar_email_siv()
 
 
 
-# #------------------------------VISITA DE ENCERRAMENTO----------------------------------------------
-# #TODO  Close-Out Visit (COV)
-# # SELECIONANDO OS DADOS
-# cov = df_protocolo.copy()
-# cov = cov[[
-#     'data_close_out',
-#     'apelido_protocolo',
-#     'dados_co_centro',
-#     'dados_pi',
-#     'dados_coordenador',
-#     'dados_patrocinador',
-#     'dados_cro_responsavel',
-#     'dados_especialidade',
-#     'dados_status_protocolo'    
-# ]]
+#------------------------------VISITA DE ENCERRAMENTO----------------------------------------------
+#TODO  Close-Out Visit (COV)
+# SELECIONANDO OS DADOS
+cov = df_protocolo.copy()
+cov = cov[[
+    'data_close_out',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'    
+]]
 
-# # TRATAMENTO DA COLUNA DATAS
-# cov['data_close_out']= pd.to_datetime(cov['data_close_out']).dt.tz_localize(None)
+# TRATAMENTO DA COLUNA DATAS
+cov['data_close_out']= pd.to_datetime(cov['data_close_out']).dt.tz_localize(None)
 
-# #ELIMINANDO LINHAS NULAS
-# cov = cov.dropna(subset=['data_close_out'])
+#ELIMINANDO LINHAS NULAS
+cov = cov.dropna(subset=['data_close_out'])
 
-# # EXTRAINDO DADOS DOS DICIONÁRIOS
-# colunas_a_extrair=[
-#     'dados_co_centro',
-#     'dados_pi',
-#     'dados_coordenador',
-#     'dados_patrocinador',
-#     'dados_cro_responsavel',
-#     'dados_especialidade',
-#     'dados_status_protocolo'
-# ]
+# EXTRAINDO DADOS DOS DICIONÁRIOS
+colunas_a_extrair=[
+    'dados_co_centro',
+    'dados_pi',
+    'dados_coordenador',
+    'dados_patrocinador',
+    'dados_cro_responsavel',
+    'dados_especialidade',
+    'dados_status_protocolo'
+]
 
-# for coluna in colunas_a_extrair:
-#     cov[coluna] = cov[coluna].apply(extrair_ultima_informacao)
+for coluna in colunas_a_extrair:
+    cov[coluna] = cov[coluna].apply(extrair_ultima_informacao)
 
-# # RENOMEANDO AS COLUNAS PARA A TABELA FINAL
-# cov.rename(columns={
-#     'data_close_out': 'Data da COV',
-#     'apelido_protocolo': 'Protocolo',
-#     'dados_co_centro':'Centro',
-#     'dados_pi': 'Investigador Principal',
-#     'dados_coordenador': 'Coordenador',
-#     'dados_patrocinador':'Patrocinador',
-#     'dados_cro_responsavel': 'CRO',
-#     'dados_especialidade': 'Especialidade',
-#     'dados_status_protocolo': 'Status do Protocolo',
-#     }, inplace=True)
+# RENOMEANDO AS COLUNAS PARA A TABELA FINAL
+cov.rename(columns={
+    'data_close_out': 'Data da COV',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro':'Centro',
+    'dados_pi': 'Investigador Principal',
+    'dados_coordenador': 'Coordenador',
+    'dados_patrocinador':'Patrocinador',
+    'dados_cro_responsavel': 'CRO',
+    'dados_especialidade': 'Especialidade',
+    'dados_status_protocolo': 'Status do Protocolo',
+    }, inplace=True)
 
-# # SELECIONANDO O PERÍODO
-# cov = cov[
-#     (cov['Data da COV'] > amanha) &
-#     (cov['Data da COV'] <= proximas_duas_semanas)
-# ].sort_values(by='Data da COV', ascending = True)
+# SELECIONANDO O PERÍODO
+cov = cov[
+    (cov['Data da COV'] > amanha) &
+    (cov['Data da COV'] <= proximas_duas_semanas)
+].sort_values(by='Data da COV', ascending = True)
 
-# # SELECIONANDO A PRIMEIRA E ULTIMA DATA DO PERÍODO
-# # Primeira período para titulo do email
-# if not cov.empty:
-#     cov_no_periodo_min = cov['Data da COV'].min().strftime('%d/%m/%Y')
-#     cov_no_periodo_max = cov['Data da COV'].max().strftime('%d/%m/%Y')
-# else:
-#     cov_no_periodo_min = None
-#     cov_no_periodo_max = None
+# SELECIONANDO A PRIMEIRA E ULTIMA DATA DO PERÍODO
+# Primeira período para titulo do email
+if not cov.empty:
+    cov_no_periodo_min = cov['Data da COV'].min().strftime('%d/%m/%Y')
+    cov_no_periodo_max = cov['Data da COV'].max().strftime('%d/%m/%Y')
+else:
+    cov_no_periodo_min = None
+    cov_no_periodo_max = None
 
-# # CONFIGURANDO O TÍTULO DO E-MAIL
-# subject_email =(
-#    f'COV agendada na data {cov_no_periodo_min}'
-#    if cov_no_periodo_min == cov_no_periodo_max
-#    else f'covs agendadas nas datas {cov_no_periodo_min} e {cov_no_periodo_max}'
-# )
+# CONFIGURANDO O TÍTULO DO E-MAIL
+subject_email =(
+   f'COV agendada na data {cov_no_periodo_min}'
+   if cov_no_periodo_min == cov_no_periodo_max
+   else f'covs agendadas nas datas {cov_no_periodo_min} e {cov_no_periodo_max}'
+)
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_cov(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data da COV'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if cov.empty:
-#         return "Nenhum participante finalizou o estudo ou o tratamento"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = cov.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_cov(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da COV'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if cov.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = cov.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# cov_html = filtrar_cov(cov)
+# Chamando a função
+cov_html = filtrar_cov(cov)
 
-# # Função de envio do e-mail
-# def enviar_email_cov():
-#     try:
-#         if cov.empty:
-#             print("NENHUMA COV AGENDADA PARA AS PROXIMAS SEMANAS")
-#             return
+# Função de envio do e-mail
+def enviar_email_cov():
+    try:
+        if cov.empty:
+            print("NENHUMA COV AGENDADA PARA AS PROXIMAS SEMANAS")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = subject_email
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>No período entre {cov_no_periodo_min} e {cov_no_periodo_max} foram agendadas as seguintes COVs</h2>
-#                 <p>{cov_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {cov_no_periodo_min} e {cov_no_periodo_max} foram agendadas as seguintes COVs</h2>
+                <p>{cov_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"covs agendadas entre {cov_no_periodo_min} e {cov_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"covs agendadas entre {cov_no_periodo_min} e {cov_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_cov()
-
-
-# #-----------------------------Assinatura do primeiro TCLE------------------------------------------
-# #TODO  Assinatura do primeiro TCLE
-# # PARTE 1 - CENTROS
-# centros = dim_protocolo.copy()
-
-# centros = centros[[
-#     'id',
-#     'dados_co_centro'
-# ]]
-# centros = centros.rename(columns={
-#     'id': 'id_protocolo',
-#     'dados_co_centro': 'Centro'
-# })
-# # PARTE 2 - PARTICIPANTES
-# dim_participantes = df_participantes.copy()
-# dim_participantes = dim_participantes[[
-#     'id',
-#     'numero_de_randomizacao',
-#     'Status',
-#     'co_protocolo',
-#     'dados_protocolo']]
-# dim_participantes.rename(columns={
-#     'id': 'id_participante',
-#     'numero_de_randomizacao':'Participante',
-#     'Status':'Status',
-#     'co_protocolo':'id_protocolo',
-#     'dados_protocolo': 'Protocolo'
-# }, inplace=True)
+enviar_email_cov()
 
 
-# ultima_infomacao_pct = [
-#     'Status',
-#     'Protocolo'
-# ]
-# for coluna in ultima_infomacao_pct:
-#     dim_participantes[coluna] = dim_participantes[coluna].apply(extrair_ultima_informacao)
+#-----------------------------Assinatura do primeiro TCLE------------------------------------------
+#TODO  Assinatura do primeiro TCLE
+# PARTE 1 - CENTROS
+centros = dim_protocolo.copy()
+
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
+# PARTE 2 - PARTICIPANTES
+dim_participantes = df_participantes.copy()
+dim_participantes = dim_participantes[[
+    'id',
+    'numero_de_randomizacao',
+    'Status',
+    'co_protocolo',
+    'dados_protocolo']]
+dim_participantes.rename(columns={
+    'id': 'id_participante',
+    'numero_de_randomizacao':'Participante',
+    'Status':'Status',
+    'co_protocolo':'id_protocolo',
+    'dados_protocolo': 'Protocolo'
+}, inplace=True)
+
+
+ultima_infomacao_pct = [
+    'Status',
+    'Protocolo'
+]
+for coluna in ultima_infomacao_pct:
+    dim_participantes[coluna] = dim_participantes[coluna].apply(extrair_ultima_informacao)
     
-# # PARTE 3 - PROCEDIMENTOS
-# dim_visita_procedimentos = df_visita_procedimentos.copy()
-# dim_visita_procedimentos=dim_visita_procedimentos[[
-#                                                  'dados_participante_visita.co_participante',
-#                                                  'dados_protocolo_procedimento.nome_procedimento_estudo',
-#                                                  'data_executada'
-#                                                  ]]
-# dim_visita_procedimentos.rename(columns={
-#     'dados_participante_visita.co_participante': 'id_participante',
-#     'dados_protocolo_procedimento.nome_procedimento_estudo': 'Procedimento',
-#     'data_executada': 'Data Executada'
-# }, inplace = True)
+# PARTE 3 - PROCEDIMENTOS
+dim_visita_procedimentos = df_visita_procedimentos.copy()
+dim_visita_procedimentos=dim_visita_procedimentos[[
+                                                 'dados_participante_visita.co_participante',
+                                                 'dados_protocolo_procedimento.nome_procedimento_estudo',
+                                                 'data_executada'
+                                                 ]]
+dim_visita_procedimentos.rename(columns={
+    'dados_participante_visita.co_participante': 'id_participante',
+    'dados_protocolo_procedimento.nome_procedimento_estudo': 'Procedimento',
+    'data_executada': 'Data Executada'
+}, inplace = True)
 
-# dim_visita_procedimentos['Data Executada']= pd.to_datetime(dim_visita_procedimentos['Data Executada'])
+dim_visita_procedimentos['Data Executada']= pd.to_datetime(dim_visita_procedimentos['Data Executada'])
 
-# dim_participantes = dim_participantes.merge(dim_visita_procedimentos, how = 'left', on='id_participante')
-# dim_participantes = dim_participantes.merge(centros, how = 'left', on='id_protocolo')
+dim_participantes = dim_participantes.merge(dim_visita_procedimentos, how = 'left', on='id_participante')
+dim_participantes = dim_participantes.merge(centros, how = 'left', on='id_protocolo')
 
-# colunas_data = [
-#     'Data Executada'
-# ]
+colunas_data = [
+    'Data Executada'
+]
 
-# dim_participantes[colunas_data]=dim_participantes[colunas_data].apply(lambda x: pd.to_datetime(x, errors = 'coerce').dt.tz_localize(None).dt.date)
-# dim_participantes['Data Executada']= pd.to_datetime(dim_participantes['Data Executada'])
+dim_participantes[colunas_data]=dim_participantes[colunas_data].apply(lambda x: pd.to_datetime(x, errors = 'coerce').dt.tz_localize(None).dt.date)
+dim_participantes['Data Executada']= pd.to_datetime(dim_participantes['Data Executada'])
 
-# termos = [
-#     'tcle', 
-#     'Termo e Consentimento' ,
-#     'Termo de Consentimento',
-#     'Consentimento',
-#     'Assentimento'
-#     ]
-# expressao = '|'.join(termos)
+termos = [
+    'tcle', 
+    'Termo e Consentimento' ,
+    'Termo de Consentimento',
+    'Consentimento',
+    'Assentimento'
+    ]
+expressao = '|'.join(termos)
 
-# dim_participantes = dim_participantes[dim_participantes['Procedimento'].str.contains(expressao, regex=True, na=False, case=False)]
-# # Encontrando o primeiro indivíduo que realizou cada procedimento por protocolo
-# primeiro_tcle_assinado = dim_participantes.loc[dim_participantes.groupby(['Protocolo', 'Procedimento'])['Data Executada'].idxmin()]
+dim_participantes = dim_participantes[dim_participantes['Procedimento'].str.contains(expressao, regex=True, na=False, case=False)]
+# Encontrando o primeiro indivíduo que realizou cada procedimento por protocolo
+primeiro_tcle_assinado = dim_participantes.loc[dim_participantes.groupby(['Protocolo', 'Procedimento'])['Data Executada'].idxmin()]
     
-# # # Filtrar para o primeiro TCLE de cada protocolo assinado nas duas ultimas semanas
-# primeiro_tcle_assinado = primeiro_tcle_assinado[
-#     (primeiro_tcle_assinado['Data Executada'] >= duas_ultimas_semanas)
-# ]
+# # Filtrar para o primeiro TCLE de cada protocolo assinado nas duas ultimas semanas
+primeiro_tcle_assinado = primeiro_tcle_assinado[
+    (primeiro_tcle_assinado['Data Executada'] >= duas_ultimas_semanas)
+]
 
-# nome_protocolo_primeiro_tcle_assinado = primeiro_tcle_assinado['Protocolo'].tolist()
-# primeiro_tcle_assinado_reg = ', '.join(nome_protocolo_primeiro_tcle_assinado)
-# data_primeiro_tcle_assinado = primeiro_tcle_assinado['Data Executada'].tolist()
-# data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeiro_tcle_assinado])
+nome_protocolo_primeiro_tcle_assinado = primeiro_tcle_assinado['Protocolo'].tolist()
+primeiro_tcle_assinado_reg = ', '.join(nome_protocolo_primeiro_tcle_assinado)
+data_primeiro_tcle_assinado = primeiro_tcle_assinado['Data Executada'].tolist()
+data_protocolo_aprovacao_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeiro_tcle_assinado])
 
-# if not primeiro_tcle_assinado.empty:
-#     tcle_info = f"<p> Protocolo {primeiro_tcle_assinado} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
-# else:
-#     tcle_info = ""
-
-
-# def filtrar_primeiro_tcle_assinado(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data Executada'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if primeiro_tcle_assinado.empty:
-#         return "Nenhum TCLE assinado até o presente momento"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = primeiro_tcle_assinado.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
-
-#         return dataframe_filtrado.to_html(index=False)
-
-# # Chamando a função
-# primeiro_tcle_assinadoo_html = filtrar_primeiro_tcle_assinado(primeiro_tcle_assinado) 
+if not primeiro_tcle_assinado.empty:
+    tcle_info = f"<p> Protocolo {primeiro_tcle_assinado} aprovado na avaliação regulatória na data de {data_protocolo_aprovacao_reg}"
+else:
+    tcle_info = ""
 
 
+def filtrar_primeiro_tcle_assinado(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Executada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if primeiro_tcle_assinado.empty:
+        return "Nenhum TCLE assinado até o presente momento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = primeiro_tcle_assinado.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-# def enviar_email_primeiro_tcle_assinado():
-#     try:
-#         if primeiro_tcle_assinado.empty:
-#             print("Nenhum estudo com seu primeiro TCLE assinado no período")
-#             return
+        return dataframe_filtrado.to_html(index=False)
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
+# Chamando a função
+primeiro_tcle_assinadoo_html = filtrar_primeiro_tcle_assinado(primeiro_tcle_assinado) 
+
+
+
+def enviar_email_primeiro_tcle_assinado():
+    try:
+        if primeiro_tcle_assinado.empty:
+            print("Nenhum estudo com seu primeiro TCLE assinado no período")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Protocolos aprovados pelo órgão regulatório </h2>
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Protocolos aprovados pelo órgão regulatório </h2>
                 
-#                 <p>{primeiro_tcle_assinadoo_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+                <p>{primeiro_tcle_assinadoo_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("Encontrados estudos com o primeiro TCLE Assinado")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Encontrados estudos com o primeiro TCLE Assinado")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_primeiro_tcle_assinado()
+enviar_email_primeiro_tcle_assinado()
 
-# #------------------------Relato de Evento Adverso/ Evento Adverso Sério---------------------------
-# #TODO  Relato de EA/EAS
-# dim_evento_adverso = df_evento_adverso.copy()
+#------------------------Relato de Evento Adverso/ Evento Adverso Sério---------------------------
+#TODO  Relato de EA/EAS
+dim_evento_adverso = df_evento_adverso.copy()
 
-# ultima_infomacao_ea = [
-#     'dados_participante',
-#     'dados_classificacao_evento',
-#     'dados_protocolo',
-#     'dados_centro',
-#     'dados_status',
-#     'dados_relacao_produto_investigacional',
-#     'dados_intensidade',
-#     'dados_classificacao',
-#     'dados_tipo',
-#     'dados_situacao_participante',
-#     'dados_evento_esperado',
-#     'dados_demanda_judicial',
-#     'dados_participante_descontinuado'
+ultima_infomacao_ea = [
+    'dados_participante',
+    'dados_classificacao_evento',
+    'dados_protocolo',
+    'dados_centro',
+    'dados_status',
+    'dados_relacao_produto_investigacional',
+    'dados_intensidade',
+    'dados_classificacao',
+    'dados_tipo',
+    'dados_situacao_participante',
+    'dados_evento_esperado',
+    'dados_demanda_judicial',
+    'dados_participante_descontinuado'
     
-# ]
-# for coluna in ultima_infomacao_ea:
-#     dim_evento_adverso[coluna] = dim_evento_adverso[coluna].apply(extrair_ultima_informacao)
+]
+for coluna in ultima_infomacao_ea:
+    dim_evento_adverso[coluna] = dim_evento_adverso[coluna].apply(extrair_ultima_informacao)
     
-# dim_evento_adverso.rename(columns={
-#     'dados_protocolo': 'Protocolo',
-#     'dados_centro': 'Centro',
-#     'dados_participante': 'Participante',
-#     'dados_classificacao_evento': 'Classificação',
-#     'dados_status': 'Status do EA',
-#     'dados_relacao_produto_investigacional': 'Causalidade com o produto investigacional',
-#     'dados_intensidade': 'Intensidade do Evento',
-#     'dados_classificacao': 'Gravidade',
-#     'dados_tipo':'Tipo',
-#     'dados_situacao_participante': 'Situação do Participante',
-#     'dados_evento_esperado': 'EA esperado?',
-#     'dados_demanda_judicial': 'Houve demanda judicial?',
-#     'dados_participante_descontinuado': 'Participante descontinuado?',
-#     'data_do_evento':'Data do evento',
-#     'data_de_report_farmacovigilancia': 'Data de report para farmacovigilância',
-#     'data_de_report_cep': 'Data de report ao CEP',
-#     'codigo': 'Código'
-# }, inplace = True)
+dim_evento_adverso.rename(columns={
+    'dados_protocolo': 'Protocolo',
+    'dados_centro': 'Centro',
+    'dados_participante': 'Participante',
+    'dados_classificacao_evento': 'Classificação',
+    'dados_status': 'Status do EA',
+    'dados_relacao_produto_investigacional': 'Causalidade com o produto investigacional',
+    'dados_intensidade': 'Intensidade do Evento',
+    'dados_classificacao': 'Gravidade',
+    'dados_tipo':'Tipo',
+    'dados_situacao_participante': 'Situação do Participante',
+    'dados_evento_esperado': 'EA esperado?',
+    'dados_demanda_judicial': 'Houve demanda judicial?',
+    'dados_participante_descontinuado': 'Participante descontinuado?',
+    'data_do_evento':'Data do evento',
+    'data_de_report_farmacovigilancia': 'Data de report para farmacovigilância',
+    'data_de_report_cep': 'Data de report ao CEP',
+    'codigo': 'Código'
+}, inplace = True)
 
-# dim_evento_adverso = dim_evento_adverso[[
-#     'Protocolo',
-#     'Centro',
-#     'Participante',
-#     'Código',
-#     'Gravidade',
-#     'Tipo',
-#     'Intensidade do Evento',
-#     'Causalidade com o produto investigacional',
-#     'Situação do Participante',
-#     'Participante descontinuado?',
-#     'EA esperado?',
-#     'Houve demanda judicial?',
-#     'Status do EA',
-#     'Data do evento',
-#     'Data de report para farmacovigilância',
-#     'Data de report ao CEP'
-# ]]
+dim_evento_adverso = dim_evento_adverso[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Código',
+    'Gravidade',
+    'Tipo',
+    'Intensidade do Evento',
+    'Causalidade com o produto investigacional',
+    'Situação do Participante',
+    'Participante descontinuado?',
+    'EA esperado?',
+    'Houve demanda judicial?',
+    'Status do EA',
+    'Data do evento',
+    'Data de report para farmacovigilância',
+    'Data de report ao CEP'
+]]
 
-# colunas_data = [
-#     'Data do evento',
-#     'Data de report para farmacovigilância',
-#     'Data de report ao CEP'
-# ]
-# dim_evento_adverso[colunas_data] = dim_evento_adverso[colunas_data].apply(pd.to_datetime)
+colunas_data = [
+    'Data do evento',
+    'Data de report para farmacovigilância',
+    'Data de report ao CEP'
+]
+dim_evento_adverso[colunas_data] = dim_evento_adverso[colunas_data].apply(pd.to_datetime)
 
-# dim_evento_adverso=dim_evento_adverso.dropna(subset=['Protocolo'])
-# dim_evento_adverso=dim_evento_adverso.dropna(subset=['Data do evento'])
+dim_evento_adverso=dim_evento_adverso.dropna(subset=['Protocolo'])
+dim_evento_adverso=dim_evento_adverso.dropna(subset=['Data do evento'])
 
-# # # Filtrar os EA/EAS que ocorreram nos últimos 7 dias
-# dim_evento_adverso = dim_evento_adverso[
-#     (dim_evento_adverso['Data do evento'] >= ultima_semana)
-# ]
+# # Filtrar os EA/EAS que ocorreram nos últimos 7 dias
+dim_evento_adverso = dim_evento_adverso[
+    (dim_evento_adverso['Data do evento'] >= ultima_semana)
+]
 
-# #-----#
-# nome_protocolo_ea = dim_evento_adverso['Protocolo'].tolist()
-# nome_protocolo_ea_reg = ', '.join(nome_protocolo_ea)
-
-
-# #----#
-# data_ea = dim_evento_adverso['Data do evento'].tolist()
-# data_ea_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_ea])
-
-# #-----#
-# if not dim_evento_adverso.empty:
-#     ea_info = f"<p> Relato de evento adverso: Protocolo {nome_protocolo_ea_reg}, Data: {data_ea_reg}"
-# else:
-#     ea_info = ""
+#-----#
+nome_protocolo_ea = dim_evento_adverso['Protocolo'].tolist()
+nome_protocolo_ea_reg = ', '.join(nome_protocolo_ea)
 
 
-# def filtrar_dim_evento_adverso(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data do evento'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if dim_evento_adverso.empty:
-#         return "Nenhum Evento Adverso notificado"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = dim_evento_adverso.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+#----#
+data_ea = dim_evento_adverso['Data do evento'].tolist()
+data_ea_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_ea])
 
-#         return dataframe_filtrado.to_html(index=False)
-
-# # Chamando a função
-# dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso) 
+#-----#
+if not dim_evento_adverso.empty:
+    ea_info = f"<p> Relato de evento adverso: Protocolo {nome_protocolo_ea_reg}, Data: {data_ea_reg}"
+else:
+    ea_info = ""
 
 
+def filtrar_dim_evento_adverso(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data do evento'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if dim_evento_adverso.empty:
+        return "Nenhum Evento Adverso notificado"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = dim_evento_adverso.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-# def enviar_email_evento_adverso():
-#     try:
-#         if dim_evento_adverso.empty:
-#             print("Nenhum Evento Adverso notificado")
-#             return
+        return dataframe_filtrado.to_html(index=False)
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
+# Chamando a função
+dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso) 
+
+
+
+def enviar_email_evento_adverso():
+    try:
+        if dim_evento_adverso.empty:
+            print("Nenhum Evento Adverso notificado")
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Eventos adversos relatados </h2>
-#                 {ea_info}
-#                 <p style="overflow-x:auto;">{dim_evento_adverso_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Eventos adversos relatados </h2>
+                {ea_info}
+                <p style="overflow-x:auto;">{dim_evento_adverso_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("Evento adverso relatado")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Evento adverso relatado")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_evento_adverso()
+enviar_email_evento_adverso()
 
-# #------------------------Primeira visita do estudo---------------------------
-# #TODO: Primeira Visita do Primeiro Paciente realizada (FPFV)
-# # Obtendo os dados da agenda dos participantes
-# fato_agenda = df_participante_visita.copy()
+#------------------------Primeira visita do estudo---------------------------
+#TODO: Primeira Visita do Primeiro Paciente realizada (FPFV)
+# Obtendo os dados da agenda dos participantes
+fato_agenda = df_participante_visita.copy()
 
-# # Tratamento dos dados 
-# ## selecionando os campos de interesse da agenda do participante
-# fato_agenda = fato_agenda[[
-#     'id',
-#     'co_participante',
-#     'nome_tarefa',
-#     'data_realizada',
-#     'dados_status',
-# ]]
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+fato_agenda = fato_agenda[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
 
-# ## Renomeando as colunas para facil visualização no dataframe
-# fato_agenda.rename(columns = {
-#     'id':'id_agenda',
-#     'co_participante':'id_participante',
-#     'nome_tarefa':'visita',
-#     'data_realizada':'Data da visita realizada',
-#     'dados_status': 'Status da visita'
-# }, inplace = True)
+## Renomeando as colunas para facil visualização no dataframe
+fato_agenda.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
 
-# # Obtendo os dados do participante
-# dim_participantes = df_participantes.copy()
-# ## selecionando os campos de interesse
-# dim_participantes=dim_participantes[[
-#     'id',
-#     'id_participante',
-#     'co_protocolo',
-#     'dados_protocolo',
-#     'dados_status',
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
 
-# dim_participantes.rename(columns ={
-#     'id':'id_participante',
-#     'id_participante': 'Participante',
-#     'co_protocolo': 'id_protocolo',
-#     'dados_protocolo': 'Protocolo',
-#     'dados_status': 'Status do Participante'
-#     }, inplace = True)
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
 
-# # Obtenção dos centros
-# dim_protocolo = df_protocolo.copy()
-# centros = dim_protocolo.copy()
-# ## selecionando os campos de interesse
-# centros = centros[[
-#     'id',
-#     'dados_co_centro'
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
-# centros = centros.rename(columns={
-#     'id': 'id_protocolo',
-#     'dados_co_centro': 'Centro'
-# })
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
 
-# # Merge dos 3 datasets para criar o dataframe final
-# fato_agenda = fato_agenda.merge(dim_participantes, how = 'left', on='id_participante')
-# fato_agenda = fato_agenda.merge(centros, how = 'left', on='id_protocolo')
+# Merge dos 3 datasets para criar o dataframe final
+fato_agenda = fato_agenda.merge(dim_participantes, how = 'left', on='id_participante')
+fato_agenda = fato_agenda.merge(centros, how = 'left', on='id_protocolo')
 
-# # Extraindo as informações dos dicionários
-# colunas_a_extrair = [
-#     'Status da visita',
-#     'Protocolo',
-#     'Status do Participante',
-#     'Centro'
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
    
-# ]
-# for coluna in colunas_a_extrair:
-#     fato_agenda[coluna] = fato_agenda[coluna].apply(extrair_ultima_informacao)
+]
+for coluna in colunas_a_extrair:
+    fato_agenda[coluna] = fato_agenda[coluna].apply(extrair_ultima_informacao)
     
-# # Tratamento da coluna de datas
-# fato_agenda['Data da visita realizada']= pd.to_datetime(fato_agenda['Data da visita realizada']).dt.tz_localize(None)
+# Tratamento da coluna de datas
+fato_agenda['Data da visita realizada']= pd.to_datetime(fato_agenda['Data da visita realizada']).dt.tz_localize(None)
 
-# # tratando valores faltantes
-# fato_agenda['Protocolo']=fato_agenda['Protocolo'].fillna('Indefinido')
-# fato_agenda['Centro']=fato_agenda['Centro'].fillna('Indefinido')
-# fato_agenda = fato_agenda.dropna(subset=['Data da visita realizada'])
+# tratando valores faltantes
+fato_agenda['Protocolo']=fato_agenda['Protocolo'].fillna('Indefinido')
+fato_agenda['Centro']=fato_agenda['Centro'].fillna('Indefinido')
+fato_agenda = fato_agenda.dropna(subset=['Data da visita realizada'])
 
-# fato_agenda = fato_agenda[[
-#     'Protocolo',
-#     'Centro',
-#     'Participante',
-#     'Status do Participante',
-#     'visita',
-#     'Status da visita',
-#     'Data da visita realizada'
-# ]]
+fato_agenda = fato_agenda[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
 
-# # Primeira visita do estudo
-# primeira_visita = fato_agenda.loc[fato_agenda.groupby(['Protocolo', 'Centro'])['Data da visita realizada'].idxmin()]
+# Primeira visita do estudo
+primeira_visita = fato_agenda.loc[fato_agenda.groupby(['Protocolo', 'Centro'])['Data da visita realizada'].idxmin()]
 
 
-# # Selecionando o período a ser notificado
-# primeira_visita = primeira_visita[
-#     (primeira_visita['Data da visita realizada'] >= ultima_semana)
-# ]
+# Selecionando o período a ser notificado
+primeira_visita = primeira_visita[
+    (primeira_visita['Data da visita realizada'] >= ultima_semana)
+]
 
-# #Configurações para o E-MAIL
-# # Filtrando os nomes de estudos que irão compor o titulo do e-mail
-# protocolo_primeira_visita = primeira_visita['Protocolo'].tolist()
-# protocolo_primeira_visita_reg = ', '.join(protocolo_primeira_visita)
+#Configurações para o E-MAIL
+# Filtrando os nomes de estudos que irão compor o titulo do e-mail
+protocolo_primeira_visita = primeira_visita['Protocolo'].tolist()
+protocolo_primeira_visita_reg = ', '.join(protocolo_primeira_visita)
 
-# # Filtrando as datas das visitas que irão compor o titulo do e-mail
-# data_primeira_visita = primeira_visita['Data da visita realizada'].tolist()
-# data_primeira_visita_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeira_visita])
+# Filtrando as datas das visitas que irão compor o titulo do e-mail
+data_primeira_visita = primeira_visita['Data da visita realizada'].tolist()
+data_primeira_visita_reg = ', '.join([data.strftime('%d/%m/%Y') for data in data_primeira_visita])
 
-# # Texto do corpo do e-mail
-# if not primeira_visita.empty:
-#     primeira_visita_info = f"<p> Relato de evento adverso: Protocolo {protocolo_primeira_visita_reg}, Data: {data_primeira_visita_reg}"
-# else:
-#     primeira_visita_info = ""
+# Texto do corpo do e-mail
+if not primeira_visita.empty:
+    primeira_visita_info = f"<p> Relato de evento adverso: Protocolo {protocolo_primeira_visita_reg}, Data: {data_primeira_visita_reg}"
+else:
+    primeira_visita_info = ""
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_primeira_visita(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if primeira_visita.empty:
-#         return "Visitas não notificadas"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = primeira_visita.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_primeira_visita(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if primeira_visita.empty:
+        return "Visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = primeira_visita.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# primeira_visita_html = filtrar_primeira_visita(primeira_visita)
+# Chamando a função
+primeira_visita_html = filtrar_primeira_visita(primeira_visita)
 
-# # Função de envio do e-mail
-# def enviar_email_primeira_visita():
-#     try:
-#         if primeira_visita.empty:
-#             print("Sem relato de primeira visita")
-#             return
+# Função de envio do e-mail
+def enviar_email_primeira_visita():
+    try:
+        if primeira_visita.empty:
+            print("Sem relato de primeira visita")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Eventos adversos relatados </h2>
-#                 {primeira_visita_info}
-#                 <p>{primeira_visita_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Eventos adversos relatados </h2>
+                {primeira_visita_info}
+                <p>{primeira_visita_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print("Relatos de primeira visita")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print("Relatos de primeira visita")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_primeira_visita()
+enviar_email_primeira_visita()
 
-# #------------------------Visitas realizadas na semana---------------------------
-# #TODO: Visitas realizadas na semana
-# visitas_realizadas = df_participante_visita.copy()
+#------------------------Visitas realizadas na semana---------------------------
+#TODO: Visitas realizadas na semana
+visitas_realizadas = df_participante_visita.copy()
 
-# # Tratamento dos dados 
-# ## selecionando os campos de interesse da agenda do participante
-# visitas_realizadas = visitas_realizadas[[
-#     'id',
-#     'co_participante',
-#     'nome_tarefa',
-#     'data_realizada',
-#     'dados_status',
-# ]]
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+visitas_realizadas = visitas_realizadas[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
 
-# ## Renomeando as colunas para facil visualização no dataframe
-# visitas_realizadas.rename(columns = {
-#     'id':'id_agenda',
-#     'co_participante':'id_participante',
-#     'nome_tarefa':'visita',
-#     'data_realizada':'Data da visita realizada',
-#     'dados_status': 'Status da visita'
-# }, inplace = True)
+## Renomeando as colunas para facil visualização no dataframe
+visitas_realizadas.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
 
-# # Obtendo os dados do participante
-# dim_participantes = df_participantes.copy()
-# ## selecionando os campos de interesse
-# dim_participantes=dim_participantes[[
-#     'id',
-#     'id_participante',
-#     'co_protocolo',
-#     'dados_protocolo',
-#     'dados_status',
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
 
-# dim_participantes.rename(columns ={
-#     'id':'id_participante',
-#     'id_participante': 'Participante',
-#     'co_protocolo': 'id_protocolo',
-#     'dados_protocolo': 'Protocolo',
-#     'dados_status': 'Status do Participante'
-#     }, inplace = True)
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
 
-# # Obtenção dos centros
-# dim_protocolo = df_protocolo.copy()
-# centros = dim_protocolo.copy()
-# ## selecionando os campos de interesse
-# centros = centros[[
-#     'id',
-#     'dados_co_centro'
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
-# centros = centros.rename(columns={
-#     'id': 'id_protocolo',
-#     'dados_co_centro': 'Centro'
-# })
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
 
-# # Merge dos 3 datasets para criar o dataframe final
-# visitas_realizadas = visitas_realizadas.merge(dim_participantes, how = 'left', on='id_participante')
-# visitas_realizadas = visitas_realizadas.merge(centros, how = 'left', on='id_protocolo')
+# Merge dos 3 datasets para criar o dataframe final
+visitas_realizadas = visitas_realizadas.merge(dim_participantes, how = 'left', on='id_participante')
+visitas_realizadas = visitas_realizadas.merge(centros, how = 'left', on='id_protocolo')
 
-# # Extraindo as informações dos dicionários
-# colunas_a_extrair = [
-#     'Status da visita',
-#     'Protocolo',
-#     'Status do Participante',
-#     'Centro'
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
    
-# ]
-# for coluna in colunas_a_extrair:
-#     visitas_realizadas[coluna] = visitas_realizadas[coluna].apply(extrair_ultima_informacao)
+]
+for coluna in colunas_a_extrair:
+    visitas_realizadas[coluna] = visitas_realizadas[coluna].apply(extrair_ultima_informacao)
     
-# # Tratamento da coluna de datas
-# visitas_realizadas['Data da visita realizada']= pd.to_datetime(visitas_realizadas['Data da visita realizada']).dt.tz_localize(None)
+# Tratamento da coluna de datas
+visitas_realizadas['Data da visita realizada']= pd.to_datetime(visitas_realizadas['Data da visita realizada']).dt.tz_localize(None)
 
-# # tratando valores faltantes
-# visitas_realizadas['Protocolo']=visitas_realizadas['Protocolo'].fillna('Indefinido')
-# visitas_realizadas['Centro']=visitas_realizadas['Centro'].fillna('Indefinido')
-# visitas_realizadas = visitas_realizadas.dropna(subset=['Data da visita realizada'])
+# tratando valores faltantes
+visitas_realizadas['Protocolo']=visitas_realizadas['Protocolo'].fillna('Indefinido')
+visitas_realizadas['Centro']=visitas_realizadas['Centro'].fillna('Indefinido')
+visitas_realizadas = visitas_realizadas.dropna(subset=['Data da visita realizada'])
 
-# visitas_realizadas = visitas_realizadas[[
-#     'Protocolo',
-#     'Centro',
-#     'Participante',
-#     'Status do Participante',
-#     'visita',
-#     'Status da visita',
-#     'Data da visita realizada'
-# ]]
+visitas_realizadas = visitas_realizadas[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
 
-# # Selecionando o período a ser notificado
-# visitas_realizadas = visitas_realizadas[
-#     (visitas_realizadas['Data da visita realizada'] >= ultima_semana)
-# ]
+# Selecionando o período a ser notificado
+visitas_realizadas = visitas_realizadas[
+    (visitas_realizadas['Data da visita realizada'] >= ultima_semana)
+]
 
-# # Primeira período para titulo do email
-# visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada'].min().strftime('%d/%m/%Y')
+# Primeira período para titulo do email
+visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada'].min().strftime('%d/%m/%Y')
 
-# visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
+visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_visitas_realizadas(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if visitas_realizadas.empty:
-#         return "Visitas não notificadas"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = visitas_realizadas.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_visitas_realizadas(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if visitas_realizadas.empty:
+        return "Visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = visitas_realizadas.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# visitas_realizadas_html = filtrar_visitas_realizadas(visitas_realizadas)
+# Chamando a função
+visitas_realizadas_html = filtrar_visitas_realizadas(visitas_realizadas)
 
-# # Função de envio do e-mail
-# def enviar_email_visitas_realizadas():
-#     try:
-#         if visitas_realizadas.empty:
-#             print("Sem relato de visitas realizadas na semana")
-#             return
+# Função de envio do e-mail
+def enviar_email_visitas_realizadas():
+    try:
+        if visitas_realizadas.empty:
+            print("Sem relato de visitas realizadas na semana")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}</h2>
-#                 <p>{visitas_realizadas_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}</h2>
+                <p>{visitas_realizadas_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_visitas_realizadas()
+enviar_email_visitas_realizadas()
 
-# #------------------------Visitas previstas para os próximos dias---------------------------
-# #TODO: Próximas visitas
-# proximas_visitas = df_participante_visita.copy()
+#------------------------Visitas previstas para os próximos dias---------------------------
+#TODO: Próximas visitas
+proximas_visitas = df_participante_visita.copy()
 
-# # Tratamento dos dados 
-# ## selecionando os campos de interesse da agenda do participante
-# proximas_visitas = proximas_visitas[[
-#     'id',
-#     'co_participante',
-#     'nome_tarefa',
-#     'data_estimada',
-#     'dados_status',
-# ]]
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+proximas_visitas = proximas_visitas[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_estimada',
+    'dados_status',
+]]
 
-# ## Renomeando as colunas para facil visualização no dataframe
-# proximas_visitas.rename(columns = {
-#     'id':'id_agenda',
-#     'co_participante':'id_participante',
-#     'nome_tarefa':'visita',
-#     'data_estimada':'Data Prevista',
-#     'dados_status': 'Status da visita'
-# }, inplace = True)
+## Renomeando as colunas para facil visualização no dataframe
+proximas_visitas.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_estimada':'Data Prevista',
+    'dados_status': 'Status da visita'
+}, inplace = True)
 
-# # Obtendo os dados do participante
-# dim_participantes = df_participantes.copy()
-# ## selecionando os campos de interesse
-# dim_participantes=dim_participantes[[
-#     'id',
-#     'id_participante',
-#     'co_protocolo',
-#     'dados_protocolo',
-#     'dados_status',
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
 
-# dim_participantes.rename(columns ={
-#     'id':'id_participante',
-#     'id_participante': 'Participante',
-#     'co_protocolo': 'id_protocolo',
-#     'dados_protocolo': 'Protocolo',
-#     'dados_status': 'Status do Participante'
-#     }, inplace = True)
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
 
-# # Obtenção dos centros
-# dim_protocolo = df_protocolo.copy()
-# centros = dim_protocolo.copy()
-# ## selecionando os campos de interesse
-# centros = centros[[
-#     'id',
-#     'dados_co_centro'
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
-# centros = centros.rename(columns={
-#     'id': 'id_protocolo',
-#     'dados_co_centro': 'Centro'
-# })
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
 
-# # Merge dos 3 datasets para criar o dataframe final
-# proximas_visitas = proximas_visitas.merge(dim_participantes, how = 'left', on='id_participante')
-# proximas_visitas = proximas_visitas.merge(centros, how = 'left', on='id_protocolo')
+# Merge dos 3 datasets para criar o dataframe final
+proximas_visitas = proximas_visitas.merge(dim_participantes, how = 'left', on='id_participante')
+proximas_visitas = proximas_visitas.merge(centros, how = 'left', on='id_protocolo')
 
-# # Extraindo as informações dos dicionários
-# colunas_a_extrair = [
-#     'Status da visita',
-#     'Protocolo',
-#     'Status do Participante',
-#     'Centro'
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
    
-# ]
-# for coluna in colunas_a_extrair:
-#     proximas_visitas[coluna] = proximas_visitas[coluna].apply(extrair_ultima_informacao)
+]
+for coluna in colunas_a_extrair:
+    proximas_visitas[coluna] = proximas_visitas[coluna].apply(extrair_ultima_informacao)
     
-# # Tratamento da coluna de datas
-# proximas_visitas['Data Prevista']= pd.to_datetime(proximas_visitas['Data Prevista']).dt.tz_localize(None)
+# Tratamento da coluna de datas
+proximas_visitas['Data Prevista']= pd.to_datetime(proximas_visitas['Data Prevista']).dt.tz_localize(None)
 
-# # tratando valores faltantes
-# proximas_visitas['Protocolo']=proximas_visitas['Protocolo'].fillna('Indefinido')
-# proximas_visitas['Centro']=proximas_visitas['Centro'].fillna('Indefinido')
-# proximas_visitas = proximas_visitas.dropna(subset=['Data Prevista'])
+# tratando valores faltantes
+proximas_visitas['Protocolo']=proximas_visitas['Protocolo'].fillna('Indefinido')
+proximas_visitas['Centro']=proximas_visitas['Centro'].fillna('Indefinido')
+proximas_visitas = proximas_visitas.dropna(subset=['Data Prevista'])
 
-# proximas_visitas = proximas_visitas[[
-#     'Protocolo',
-#     'Centro',
-#     'Participante',
-#     'Status do Participante',
-#     'visita',
-#     'Status da visita',
-#     'Data Prevista'
-# ]]
+proximas_visitas = proximas_visitas[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data Prevista'
+]]
 
-# # Selecionando o período a ser notificado
-# proximas_visitas = proximas_visitas[
-#     (proximas_visitas['Data Prevista'] > amanha) & 
-#     (proximas_visitas['Data Prevista']<= proxima_semana)
-# ].sort_values(by='Data Prevista', ascending = True)
+# Selecionando o período a ser notificado
+proximas_visitas = proximas_visitas[
+    (proximas_visitas['Data Prevista'] > amanha) & 
+    (proximas_visitas['Data Prevista']<= proxima_semana)
+].sort_values(by='Data Prevista', ascending = True)
 
-# proximas_visitas_no_periodo_min = proximas_visitas['Data Prevista'].min().strftime('%d/%m/%Y')
+proximas_visitas_no_periodo_min = proximas_visitas['Data Prevista'].min().strftime('%d/%m/%Y')
 
-# proximas_visitas_no_periodo_max =proximas_visitas['Data Prevista'].max().strftime('%d/%m/%Y')
+proximas_visitas_no_periodo_max =proximas_visitas['Data Prevista'].max().strftime('%d/%m/%Y')
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_proximas_visitas(dataframe):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data Prevista'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if proximas_visitas.empty:
-#         return "Próximas visitas não notificadas"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = proximas_visitas.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_proximas_visitas(dataframe):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Prevista'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if proximas_visitas.empty:
+        return "Próximas visitas não notificadas"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = proximas_visitas.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# proximas_visitas_html = filtrar_proximas_visitas(proximas_visitas)
+# Chamando a função
+proximas_visitas_html = filtrar_proximas_visitas(proximas_visitas)
 
-# # Função de envio do e-mail
-# def enviar_email_proximas_visitas():
-#     try:
-#         if proximas_visitas.empty:
-#             print("Sem relato de visitas realizadas na semana")
-#             return
+# Função de envio do e-mail
+def enviar_email_proximas_visitas():
+    try:
+        if proximas_visitas.empty:
+            print("Sem relato de visitas realizadas na semana")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}</h2>
-#                 <p>{proximas_visitas_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}</h2>
+                <p>{proximas_visitas_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"Visitas a serem realizadas entre {proximas_visitas_no_periodo_min} e {proximas_visitas_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_proximas_visitas()
+enviar_email_proximas_visitas()
 
-# #-------------------------------Ultima visita do estudo---------------------------------------
-# #TODO: EOS ou EOT realizado
+#-------------------------------Ultima visita do estudo---------------------------------------
+#TODO: EOS ou EOT realizado
 
-# eos_eot = df_participante_visita.copy()
+eos_eot = df_participante_visita.copy()
 
-# # Tratamento dos dados 
-# ## selecionando os campos de interesse da agenda do participante
-# eos_eot = eos_eot[[
-#     'id',
-#     'co_participante',
-#     'nome_tarefa',
-#     'data_realizada',
-#     'dados_status',
-# ]]
+# Tratamento dos dados 
+## selecionando os campos de interesse da agenda do participante
+eos_eot = eos_eot[[
+    'id',
+    'co_participante',
+    'nome_tarefa',
+    'data_realizada',
+    'dados_status',
+]]
 
-# ## Renomeando as colunas para facil visualização no dataframe
-# eos_eot.rename(columns = {
-#     'id':'id_agenda',
-#     'co_participante':'id_participante',
-#     'nome_tarefa':'visita',
-#     'data_realizada':'Data da visita realizada',
-#     'dados_status': 'Status da visita'
-# }, inplace = True)
+## Renomeando as colunas para facil visualização no dataframe
+eos_eot.rename(columns = {
+    'id':'id_agenda',
+    'co_participante':'id_participante',
+    'nome_tarefa':'visita',
+    'data_realizada':'Data da visita realizada',
+    'dados_status': 'Status da visita'
+}, inplace = True)
 
-# # Obtendo os dados do participante
-# dim_participantes = df_participantes.copy()
-# ## selecionando os campos de interesse
-# dim_participantes=dim_participantes[[
-#     'id',
-#     'id_participante',
-#     'co_protocolo',
-#     'dados_protocolo',
-#     'dados_status',
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
+# Obtendo os dados do participante
+dim_participantes = df_participantes.copy()
+## selecionando os campos de interesse
+dim_participantes=dim_participantes[[
+    'id',
+    'id_participante',
+    'co_protocolo',
+    'dados_protocolo',
+    'dados_status',
+]]
+## Renomeando as colunas para facil visualização no dataframe
 
-# dim_participantes.rename(columns ={
-#     'id':'id_participante',
-#     'id_participante': 'Participante',
-#     'co_protocolo': 'id_protocolo',
-#     'dados_protocolo': 'Protocolo',
-#     'dados_status': 'Status do Participante'
-#     }, inplace = True)
+dim_participantes.rename(columns ={
+    'id':'id_participante',
+    'id_participante': 'Participante',
+    'co_protocolo': 'id_protocolo',
+    'dados_protocolo': 'Protocolo',
+    'dados_status': 'Status do Participante'
+    }, inplace = True)
 
-# # Obtenção dos centros
-# dim_protocolo = df_protocolo.copy()
-# centros = dim_protocolo.copy()
-# ## selecionando os campos de interesse
-# centros = centros[[
-#     'id',
-#     'dados_co_centro'
-# ]]
-# ## Renomeando as colunas para facil visualização no dataframe
-# centros = centros.rename(columns={
-#     'id': 'id_protocolo',
-#     'dados_co_centro': 'Centro'
-# })
+# Obtenção dos centros
+dim_protocolo = df_protocolo.copy()
+centros = dim_protocolo.copy()
+## selecionando os campos de interesse
+centros = centros[[
+    'id',
+    'dados_co_centro'
+]]
+## Renomeando as colunas para facil visualização no dataframe
+centros = centros.rename(columns={
+    'id': 'id_protocolo',
+    'dados_co_centro': 'Centro'
+})
 
-# # Merge dos 3 datasets para criar o dataframe final
-# eos_eot = eos_eot.merge(dim_participantes, how = 'left', on='id_participante')
-# eos_eot = eos_eot.merge(centros, how = 'left', on='id_protocolo')
+# Merge dos 3 datasets para criar o dataframe final
+eos_eot = eos_eot.merge(dim_participantes, how = 'left', on='id_participante')
+eos_eot = eos_eot.merge(centros, how = 'left', on='id_protocolo')
 
-# # Extraindo as informações dos dicionários
-# colunas_a_extrair = [
-#     'Status da visita',
-#     'Protocolo',
-#     'Status do Participante',
-#     'Centro'
+# Extraindo as informações dos dicionários
+colunas_a_extrair = [
+    'Status da visita',
+    'Protocolo',
+    'Status do Participante',
+    'Centro'
    
-# ]
-# for coluna in colunas_a_extrair:
-#     eos_eot[coluna] = eos_eot[coluna].apply(extrair_ultima_informacao)
+]
+for coluna in colunas_a_extrair:
+    eos_eot[coluna] = eos_eot[coluna].apply(extrair_ultima_informacao)
     
-# # Tratamento da coluna de datas
-# eos_eot['Data da visita realizada']= pd.to_datetime(eos_eot['Data da visita realizada']).dt.tz_localize(None)
+# Tratamento da coluna de datas
+eos_eot['Data da visita realizada']= pd.to_datetime(eos_eot['Data da visita realizada']).dt.tz_localize(None)
 
-# # tratando valores faltantes
-# eos_eot['Protocolo']=eos_eot['Protocolo'].fillna('Indefinido')
-# eos_eot['Centro']=eos_eot['Centro'].fillna('Indefinido')
-# eos_eot = eos_eot.dropna(subset=['Data da visita realizada'])
+# tratando valores faltantes
+eos_eot['Protocolo']=eos_eot['Protocolo'].fillna('Indefinido')
+eos_eot['Centro']=eos_eot['Centro'].fillna('Indefinido')
+eos_eot = eos_eot.dropna(subset=['Data da visita realizada'])
 
-# eos_eot = eos_eot[[
-#     'Protocolo',
-#     'Centro',
-#     'Participante',
-#     'Status do Participante',
-#     'visita',
-#     'Status da visita',
-#     'Data da visita realizada'
-# ]]
+eos_eot = eos_eot[[
+    'Protocolo',
+    'Centro',
+    'Participante',
+    'Status do Participante',
+    'visita',
+    'Status da visita',
+    'Data da visita realizada'
+]]
 
-# filtros = ['EOS', 'EOT']
+filtros = ['EOS', 'EOT']
 
-# eos_eot = eos_eot[
-#     (eos_eot['Status do Participante'].isin(filtros)) &
-#     (eos_eot['Data da visita realizada'] >= duas_ultimas_semanas)
-# ]
+eos_eot = eos_eot[
+    (eos_eot['Status do Participante'].isin(filtros)) &
+    (eos_eot['Data da visita realizada'] >= duas_ultimas_semanas)
+]
 
-# eos_eot = eos_eot.sort_values(
-#     by=[
-#         'Protocolo',
-#         'Centro',
-#         'Participante',
-#         'Data da visita realizada'
-#     ], ascending=False
-# )
+eos_eot = eos_eot.sort_values(
+    by=[
+        'Protocolo',
+        'Centro',
+        'Participante',
+        'Data da visita realizada'
+    ], ascending=False
+)
 
-# eos_eot=eos_eot.groupby(
-#     [
-#         'Protocolo',
-#         'Centro',
-#         'Participante'
-#      ]
-# ).first().reset_index()
+eos_eot=eos_eot.groupby(
+    [
+        'Protocolo',
+        'Centro',
+        'Participante'
+     ]
+).first().reset_index()
 
-# # Primeira período para titulo do email
-# if not eos_eot.empty:
-#     eos_eot_no_periodo_min = eos_eot['Data da visita realizada'].min().strftime('%d/%m/%Y')
-#     eos_eot_no_periodo_max = eos_eot['Data da visita realizada'].max().strftime('%d/%m/%Y')
-# else:
-#     eos_eot_no_periodo_min = None
-#     eos_eot_no_periodo_max = None
+# Primeira período para titulo do email
+if not eos_eot.empty:
+    eos_eot_no_periodo_min = eos_eot['Data da visita realizada'].min().strftime('%d/%m/%Y')
+    eos_eot_no_periodo_max = eos_eot['Data da visita realizada'].max().strftime('%d/%m/%Y')
+else:
+    eos_eot_no_periodo_min = None
+    eos_eot_no_periodo_max = None
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_eos_eot(dataframe, anos=3):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if eos_eot.empty:
-#         return "Nenhum participante finalizou o estudo ou o tratamento"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = eos_eot.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_eos_eot(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data da visita realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if eos_eot.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = eos_eot.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# eos_eot_html = filtrar_eos_eot(eos_eot)
+# Chamando a função
+eos_eot_html = filtrar_eos_eot(eos_eot)
 
-# # Função de envio do e-mail
-# def enviar_email_eos_eot():
-#     try:
-#         if eos_eot.empty:
-#             print("Nada a declarar sobre alteração de status de participantes")
-#             return
+# Função de envio do e-mail
+def enviar_email_eos_eot():
+    try:
+        if eos_eot.empty:
+            print("Nada a declarar sobre alteração de status de participantes")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = f"Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = f"Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>No período entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max} os seguintes participantes finalizaram o tratamento ou o estudo</h2>
-#                 <p>{eos_eot_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max} os seguintes participantes finalizaram o tratamento ou o estudo</h2>
+                <p>{eos_eot_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"EOS/EOT entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"EOS/EOT entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_eos_eot()
+enviar_email_eos_eot()
 
-# # TODO: Alteração de protocolos
-# #Acessando as bases de dados
-# flowchart = df_flowchart.copy()
+# TODO: Alteração de protocolos
+#Acessando as bases de dados
+flowchart = df_flowchart.copy()
 
-# #Protocolo
-# dim_protocolo_flowchart = df_protocolo[[
-#     'id',
-#     'apelido_protocolo',
-#     'dados_co_centro',
-#     'nome_patrocinador',
-#     'PessoaPI',
-#     'status'
+#Protocolo
+dim_protocolo_flowchart = df_protocolo[[
+    'id',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'nome_patrocinador',
+    'PessoaPI',
+    'status'
     
-#     ]].copy()
+    ]].copy()
 
-# colunas_a_extrair=[
-#     'dados_co_centro',
-#     'PessoaPI',
-#     'status',
-#     'nome_patrocinador'
-# ]
+colunas_a_extrair=[
+    'dados_co_centro',
+    'PessoaPI',
+    'status',
+    'nome_patrocinador'
+]
 
-# for coluna in colunas_a_extrair:
-#     dim_protocolo_flowchart[coluna] = dim_protocolo_flowchart[coluna].apply(extrair_ultima_informacao)
+for coluna in colunas_a_extrair:
+    dim_protocolo_flowchart[coluna] = dim_protocolo_flowchart[coluna].apply(extrair_ultima_informacao)
 
-# dim_protocolo_flowchart.rename(columns={
-#     'id':'co_protocolo',
-#     'apelido_protocolo': 'Protocolo',
-#     'dados_co_centro': 'Centro',
-#     'nome_patrocinador': 'Patrocinador',
-#     'PessoaPI': 'Investigador Principal',
-#     'status': 'Status'
+dim_protocolo_flowchart.rename(columns={
+    'id':'co_protocolo',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro': 'Centro',
+    'nome_patrocinador': 'Patrocinador',
+    'PessoaPI': 'Investigador Principal',
+    'status': 'Status'
     
-#     }, inplace=True)
+    }, inplace=True)
 
-# dim_pessoas = df_pessoas[[
-#     'id',
-#     'ds_nome',
-#     'dados_co_tipo_gn'
-#     ]].copy()
+dim_pessoas = df_pessoas[[
+    'id',
+    'ds_nome',
+    'dados_co_tipo_gn'
+    ]].copy()
 
-# colunas_a_extrair=[
-#     'dados_co_tipo_gn'
-# ]
+colunas_a_extrair=[
+    'dados_co_tipo_gn'
+]
 
-# for coluna in colunas_a_extrair:
-#     dim_pessoas[coluna] = dim_pessoas[coluna].apply(extrair_ultima_informacao)
+for coluna in colunas_a_extrair:
+    dim_pessoas[coluna] = dim_pessoas[coluna].apply(extrair_ultima_informacao)
 
-# dim_pessoas.rename(columns={
-#     'id':'aprovador',
-#     'ds_nome':'Nome aprovador',
-#     'dados_co_tipo_gn':'Função'
+dim_pessoas.rename(columns={
+    'id':'aprovador',
+    'ds_nome':'Nome aprovador',
+    'dados_co_tipo_gn':'Função'
     
-#     }, inplace=True)
+    }, inplace=True)
 
-# # MERGE
-# flowchart = flowchart.merge(dim_protocolo_flowchart, on='co_protocolo', how='left')
-# flowchart = flowchart.merge(dim_pessoas, on='aprovador', how='left')
+# MERGE
+flowchart = flowchart.merge(dim_protocolo_flowchart, on='co_protocolo', how='left')
+flowchart = flowchart.merge(dim_pessoas, on='aprovador', how='left')
 
-# # Tratamento
-# flowchart.rename(columns={
-#     'data_aprovacao': 'Data de aprovação do Flowchart'
+# Tratamento
+flowchart.rename(columns={
+    'data_aprovacao': 'Data de aprovação do Flowchart'
     
-#     }, inplace=True)
+    }, inplace=True)
 
-# flowchart=flowchart[[
-#     'Data de aprovação do Flowchart',
-#     'Protocolo',
-#     'Centro',
-#     'Patrocinador',
-#     'Investigador Principal',
-#     'Status',
-#     'Nome aprovador',
-#     'Função'
-# ]]
+flowchart=flowchart[[
+    'Data de aprovação do Flowchart',
+    'Protocolo',
+    'Centro',
+    'Patrocinador',
+    'Investigador Principal',
+    'Status',
+    'Nome aprovador',
+    'Função'
+]]
 
-# flowchart=flowchart.dropna(subset=['Data de aprovação do Flowchart', 'Protocolo'])
-# flowchart['Data de aprovação do Flowchart']= pd.to_datetime(flowchart['Data de aprovação do Flowchart']).dt.tz_localize(None)
+flowchart=flowchart.dropna(subset=['Data de aprovação do Flowchart', 'Protocolo'])
+flowchart['Data de aprovação do Flowchart']= pd.to_datetime(flowchart['Data de aprovação do Flowchart']).dt.tz_localize(None)
 
-# flowchart = flowchart[
-#     flowchart['Data de aprovação do Flowchart'] > ontem
-# ].sort_values(by='Data de aprovação do Flowchart', ascending = True)
+flowchart = flowchart[
+    flowchart['Data de aprovação do Flowchart'] > ontem
+].sort_values(by='Data de aprovação do Flowchart', ascending = True)
 
-# # Primeira período para titulo do email
-# if not flowchart.empty:
-#     flowchart_no_periodo_min = flowchart['Data de aprovação do Flowchart'].min().strftime('%d/%m/%Y')
-#     flowchart_no_periodo_max = flowchart['Data de aprovação do Flowchart'].max().strftime('%d/%m/%Y')
-# else:
-#     flowchart_no_periodo_min = None
-#     flowchart_no_periodo_max = None
+# Primeira período para titulo do email
+if not flowchart.empty:
+    flowchart_no_periodo_min = flowchart['Data de aprovação do Flowchart'].min().strftime('%d/%m/%Y')
+    flowchart_no_periodo_max = flowchart['Data de aprovação do Flowchart'].max().strftime('%d/%m/%Y')
+else:
+    flowchart_no_periodo_min = None
+    flowchart_no_periodo_max = None
 
-# subject_email =(
-#    f'Flowchart aprovado em {flowchart_no_periodo_min}'
-#    if flowchart_no_periodo_min == flowchart_no_periodo_max
-#    else f'Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
-# )
+subject_email =(
+   f'Flowchart aprovado em {flowchart_no_periodo_min}'
+   if flowchart_no_periodo_min == flowchart_no_periodo_max
+   else f'Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
+)
 
-# # Função para criar a tabela do corpo do email 
-# def filtrar_flowchart(dataframe):
-#     # Filtrar contratos com data de assinatura não nula
-#     dataframe = dataframe.loc[dataframe['Data de aprovação do Flowchart'].notna(), :]
-# # Verificar se o DataFrame filtrado está vazio
-#     if flowchart.empty:
-#         return "Nenhum participante finalizou o estudo ou o tratamento"
-#     else:
-#         # Formatar o DataFrame para exibição em HTML
-#         dataframe_filtrado = flowchart.style\
-#             .format(precision=3, thousands=".", decimal=',')\
-#             .format_index(str.upper, axis=1)\
-#             .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
-#             .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+# Função para criar a tabela do corpo do email 
+def filtrar_flowchart(dataframe):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data de aprovação do Flowchart'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if flowchart.empty:
+        return "Nenhum participante finalizou o estudo ou o tratamento"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = flowchart.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
 
-#         return dataframe_filtrado.to_html(index=False)
+        return dataframe_filtrado.to_html(index=False)
 
-# # Chamando a função
-# flowchart_html = filtrar_flowchart(flowchart)
+# Chamando a função
+flowchart_html = filtrar_flowchart(flowchart)
 
-# # Função de envio do e-mail
-# def enviar_email_flowchart():
-#     try:
-#         if flowchart.empty:
-#             print("NENHUMA FLOWCHART APROVADO NO PERÍODO")
-#             return
+# Função de envio do e-mail
+def enviar_email_flowchart():
+    try:
+        if flowchart.empty:
+            print("NENHUMA FLOWCHART APROVADO NO PERÍODO")
+            return
 
-#         msg = MIMEMultipart("alternative")
-#         msg['From'] = username_email
-#         msg['Bcc'] = ', '.join(enviar_para)
-#         msg['Subject'] = subject_email
+        msg = MIMEMultipart("alternative")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
         
-#         # Corpo do e-mail simplificado
-#         body = f"""
-#         <html>
-#             <head>{css_hover}</head>
-#             <body>
-#                 <h2>No período entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max} foram aprovados os flowcharts</h2>
-#                 <p>{flowchart_html}</p>
-#                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
-#             </body>
-#         </html>
-#         """
-#         msg.attach(MIMEText(body, 'html'))
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>No período entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max} foram aprovados os flowcharts</h2>
+                <p>{flowchart_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
 
-#         with smtplib.SMTP(server_email, port_email) as server:
-#             server.starttls()
-#             server.login(username_email, password_email)
-#             server.send_message(msg)
-#         print(f"flowcharts aprovados entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max}")
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"flowcharts aprovados entre {flowchart_no_periodo_min} e {flowchart_no_periodo_max}")
         
-#     except Exception as e:
-#         print(f"Erro ao enviar o e-mail: {e}")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
 
-# enviar_email_flowchart()
+enviar_email_flowchart()
 
 
 
@@ -2471,3 +2476,13 @@ def enviar_email_protocolos_invoices_duplicadas():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_protocolos_invoices_duplicadas()
+
+# TODO: Visitas realizadas e se elas estão vinculadas a alguma Invoice ou NF
+
+
+
+# TODO: Distribuição - visitas realizadas que não possuem NF vinculada.
+
+
+
+# TODO: Agenda - visitas realizadas quais possuem procedimentos extras
