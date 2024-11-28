@@ -103,6 +103,52 @@ def extrair_ultima_informacao(x):
         else:
             return values_list[-1]
 
+
+def extrair_segunda_informacao(x):
+    if x is None:
+        return None
+    else:
+        values_list = list(x.values())
+        if len(values_list) == 0:
+            return None
+        else:
+            return values_list[1]
+        
+def extrair_terceira_informacao(x):
+    if x is None:
+        return None
+    else:
+        values_list = list(x.values())
+        if len(values_list) == 0:
+            return None
+        else:
+            return values_list[2] if len(values_list) > 2 else None
+
+        
+def extrair_apelido_protocolo(x):
+    if x is None:
+        return None
+    elif 'apelido_protocolo' in x:
+        return x['apelido_protocolo']
+    else:
+        return None
+    
+    
+def extrair_campo(x, *chaves):
+# """
+# Extrai um campo aninhado de um dicionário dado um conjunto de chaves.
+# :param x: O dicionário de entrada.
+# :param chaves: Chaves para navegar no dicionário.
+# :return: O valor extraído ou None se a navegação falhar.
+# """
+    if isinstance(x, dict):
+        for chave in chaves:
+            x = x.get(chave)
+            if x is None:
+                return None
+        return x
+    return None
+
 #------------------------------------------SEÇÃO--------------------------------------
 # TODO: API 
 # Corpo do login a ser utilizado no acesso
@@ -2478,7 +2524,201 @@ def enviar_email_protocolos_invoices_duplicadas():
 enviar_email_protocolos_invoices_duplicadas()
 
 # TODO: Visitas realizadas e se elas estão vinculadas a alguma Invoice ou NF
+fato_visitas_nf = df_participante_visita[[
+    'id',
+    'dados_participante',
+    'dados_visita',
+    'data_realizada',
+    'dados_status',
+    'dados_nota_fiscal'
+    ]].copy()
 
+# Extrair 'co_protocolo'
+fato_visitas_nf['co_protocolo'] = fato_visitas_nf['dados_participante'].apply(
+    lambda x: extrair_campo(x, 'co_protocolo')
+)
+
+# Extrair 'id_participante'
+fato_visitas_nf['id_participante'] = fato_visitas_nf['dados_participante'].apply(
+    lambda x: extrair_campo(x, 'id_participante')
+)
+
+# Extrair 'apelido_protocolo'
+fato_visitas_nf['apelido_protocolo'] = fato_visitas_nf['dados_participante'].apply(
+    lambda x: extrair_campo(x, 'dados_protocolo', 'apelido_protocolo')
+)
+
+participante = ['dados_visita']
+
+for coluna in participante:
+    if coluna in fato_visitas_nf.columns:
+        fato_visitas_nf[coluna] = fato_visitas_nf[coluna].apply(
+            lambda x: extrair_segunda_informacao(x) if isinstance(x, dict) else None
+        )
+    else:
+        print(f"A coluna '{coluna}' não existe no DataFrame.")
+        
+ultima_info=['dados_status','dados_nota_fiscal']
+
+for coluna in ultima_info:
+    if coluna in fato_visitas_nf.columns:
+        fato_visitas_nf.loc[:,coluna] = fato_visitas_nf[coluna].apply(extrair_ultima_informacao)
+    else:
+        print(f"A coluna '{coluna}' não existe no Dataframe")
+fato_visitas_nf=fato_visitas_nf.drop('dados_participante', axis = 1)
+colunas_data = ['data_realizada']
+
+# Converte cada coluna de data separadamente para melhorar o desempenho
+for coluna in colunas_data:
+    fato_visitas_nf[coluna] = pd.to_datetime(fato_visitas_nf[coluna], errors='coerce').dt.tz_localize(None).dt.date
+fato_visitas_nf.rename(columns={
+    'id':'id_visita_nf',
+    'apelido_protocolo': 'Protocolo',
+    'dados_participante':'Participante',
+    'dados_visita':'Visita',
+    'data_realizada':'Data Realizada',
+    'dados_status':'Status da visita',
+    'dados_nota_fiscal':'Nota Fiscal'
+    }, inplace=True)
+filtros = ['Realizada', 'Realizada parcialmente']
+
+fato_visitas_nf = fato_visitas_nf[
+    fato_visitas_nf['Status da visita'].isin(filtros)
+]
+fato_visitas_nf = fato_visitas_nf[fato_visitas_nf['Nota Fiscal'].isna()]
+fato_visitas_nf.columns
+fato_visitas_nf = fato_visitas_nf[['Protocolo',
+                                   'id_participante',
+                                   'Visita',
+                                   'Status da visita',
+                                   'Data Realizada',
+                                   'Nota Fiscal',
+                                   'co_protocolo',
+                                   ]]
+colunas_data = ['Data Realizada']
+
+# Converte cada coluna de data separadamente para melhorar o desempenho
+for coluna in colunas_data:
+    fato_visitas_nf[coluna] = pd.to_datetime(fato_visitas_nf[coluna], errors='coerce').dt.tz_localize(None)
+iniciativa = df_protocolo[['id', 'dados_tipo_de_iniciativa']]
+iniciativa.rename(columns={
+    'id':'co_protocolo',
+    'dados_tipo_de_iniciativa': 'Iniciatita'
+    }, inplace=True)
+
+colunas_a_extrair_recebimento=[
+    'Iniciatita'
+]
+
+for coluna in colunas_a_extrair_recebimento:
+    iniciativa[coluna] = iniciativa[coluna].apply(extrair_ultima_informacao)
+fato_visitas_nf = fato_visitas_nf.merge(iniciativa, how = 'left', on='co_protocolo')
+tipo_de_estudo =['Patrocinador']
+fato_visitas_nf=fato_visitas_nf[fato_visitas_nf['Iniciatita'].isin(tipo_de_estudo)]
+
+filtro_visita=['Particularidades do Financeiro ']
+fato_visitas_nf=fato_visitas_nf[~fato_visitas_nf['Visita'].isin(filtro_visita)]
+fato_visitas_nf = fato_visitas_nf[fato_visitas_nf['Visita'].notna()]
+
+fato_visitas_nf = fato_visitas_nf[['id_participante',
+                                   'Protocolo',
+                                   'Iniciatita',
+                                   'Visita',
+                                   'Data Realizada',
+                                   'Status da visita',
+                                   'Nota Fiscal',
+                                   ]].sort_values(by='Data Realizada', ascending = True)
+# Primeira período para titulo do email
+if not fato_visitas_nf.empty:
+    fato_visitas_nf_min = fato_visitas_nf['Data Realizada'].min().strftime('%d/%m/%Y')
+    fato_visitas_nf_max = fato_visitas_nf['Data Realizada'].max().strftime('%d/%m/%Y')
+else:
+    fato_visitas_nf_min = None
+    fato_visitas_nf_max = None
+subject_email =(
+   f'Não existem sem nota fiscal ou invoice vinculada'
+   if fato_visitas_nf_min==None
+   else f'As visitas realizadas em {fato_visitas_nf_min} não possuem nota fiscal ou invoice vinculada'
+      if fato_visitas_nf_min == fato_visitas_nf_max
+      else f'As visitas realizadas entre {fato_visitas_nf_min} e {fato_visitas_nf_max} não possuem nota fiscal ou invoice vinculada'
+)
+subject_email
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='visitas_sem_nf.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+# Função para criar a tabela do corpo do email 
+def filtrar_protocolo_fato_visitas_nf(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Realizada'].notna(), :]
+# Verificar se o DataFrame filtrado está vazio
+    if fato_visitas_nf.empty:
+        return "Nenhuma visita realizada está sem a NF vinculada"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = fato_visitas_nf.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+fato_visitas_nf_html = filtrar_protocolo_fato_visitas_nf(fato_visitas_nf)
+
+# Função de envio do e-mail
+def enviar_email_protocolos_fato_visitas_nf():
+    try:
+        if fato_visitas_nf.empty:
+            print("Todas as visitas estão com a NF ou Invoice vinculada")
+            return
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(fato_visitas_nf)
+
+        msg = MIMEMultipart("related")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>{subject_email}</h2>
+                
+                <p>{fato_visitas_nf_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="fato_visitas_nf.xlsx"'
+        )
+        msg.attach(part)
+        
+        # Enviar o e-mail
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"{subject_email}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_protocolos_fato_visitas_nf()
 
 
 # TODO: Distribuição - visitas realizadas que não possuem NF vinculada.
