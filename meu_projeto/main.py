@@ -2416,8 +2416,12 @@ filtro = ['A emitir']
 dim_recebimentos=dim_recebimentos[~dim_recebimentos['codigo_nota_fiscal'].isin(filtro)]
 
 # Segundo Filtro
-filtro = ['Cancelada']
-dim_recebimentos=dim_recebimentos[~dim_recebimentos['dados_status_invoice'].isin(filtro)]
+filtro2 = ['Cancelada']
+dim_recebimentos=dim_recebimentos[~dim_recebimentos['dados_status_invoice'].isin(filtro2)]
+
+# terceiro filtro
+filtro3 = ['CLINICA MORUMBI']
+dim_recebimentos=dim_recebimentos[~dim_recebimentos['dados_protocolo'].isin(filtro3)]
 
 # Selecionando valores duplicados
 valore_duplicados=dim_recebimentos['codigo_nota_fiscal'].duplicated(keep=False)
@@ -2428,6 +2432,7 @@ invoices_duplicadas['data_emissao']= pd.to_datetime(invoices_duplicadas['data_em
 
 # Classificando os dados em ordem crescente
 invoices_duplicadas=invoices_duplicadas.sort_values(by='codigo_nota_fiscal', ascending = True)
+
 
 # Períodos para titulo do email
 if not invoices_duplicadas.empty:
