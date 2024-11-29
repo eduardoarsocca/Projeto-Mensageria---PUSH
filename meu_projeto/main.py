@@ -2529,6 +2529,10 @@ def enviar_email_protocolos_invoices_duplicadas():
 enviar_email_protocolos_invoices_duplicadas()
 
 # TODO: Visitas realizadas e se elas estão vinculadas a alguma Invoice ou NF
+
+
+
+# TODO: Distribuição - visitas realizadas que não possuem NF vinculada.
 fato_visitas_nf = df_participante_visita[[
     'id',
     'dados_participante',
@@ -2724,10 +2728,6 @@ def enviar_email_protocolos_fato_visitas_nf():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_protocolos_fato_visitas_nf()
-
-
-# TODO: Distribuição - visitas realizadas que não possuem NF vinculada.
-
 
 
 # TODO: Agenda - visitas realizadas quais possuem procedimentos extras
