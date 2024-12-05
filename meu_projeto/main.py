@@ -2730,7 +2730,7 @@ def enviar_email_protocolos_fato_visitas_nf():
 enviar_email_protocolos_fato_visitas_nf()
 
 
-# TODO: Agenda - visitas realizadas quais possuem procedimentos extras
+# TODO: Agenda - visitas realizadas quais possuem procedimentos extras e/ou condicionais
 
 dim_visita_procedimentos = df_visita_procedimentos.copy()
 dim_visita_procedimentos.shape
