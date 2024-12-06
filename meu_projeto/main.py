@@ -2420,7 +2420,7 @@ filtro2 = ['Cancelada']
 dim_recebimentos=dim_recebimentos[~dim_recebimentos['dados_status_invoice'].isin(filtro2)]
 
 # terceiro filtro
-filtro3 = ['CLINICA MORUMBI']
+filtro3 = ['Clínica Morumbi ']
 dim_recebimentos=dim_recebimentos[~dim_recebimentos['dados_protocolo'].isin(filtro3)]
 
 # Selecionando valores duplicados
@@ -2821,8 +2821,7 @@ procedimentos_extras=procedimentos_extras[(procedimentos_extras['Tipos de proced
 
 # Filtrar os procedimentos extras e/ou condicionais  que ocorreram nos últimos 7 dias
 procedimentos_extras = procedimentos_extras[
-    (procedimentos_extras['Data Executada'].dt.year == ano_atual)&
-    (procedimentos_extras['Data Executada'].dt.month <= mes_atual) #Após a primeira leva, alterar para delay de 1 semana
+    (procedimentos_extras['Data Executada']>= ultima_semana) #Após a primeira leva, alterar para delay de 1 semana
 ]
 # Primeira período para titulo do email
 if not procedimentos_extras.empty:
@@ -2934,9 +2933,8 @@ procedimentos_extras=dim_visita_procedimentos[[
     'dados_visita_procedimento.disponibilidade',
     'co_visita_procedimento',
     'dados_nota_fiscal.codigo_nota_fiscal'
-
-
 ]]
+
 procedimentos_extras=dim_visita_procedimentos.copy()
 
 # Renomeando as colunas
