@@ -2918,3 +2918,199 @@ enviar_email_protocolos_procedimentos_extras()
 
 
 #TODO: Procedimentos duplicados
+
+dim_visita_procedimentos = df_visita_procedimentos.copy()
+
+# Selecionando os dados
+procedimentos_extras=dim_visita_procedimentos[[
+    'dados_protocolo_procedimento.co_protocolo',
+    'dados_participante_visita.co_participante',
+    'dados_participante_visita.nome_tarefa',
+    'data_executada',
+    'opcional',
+    'dados_protocolo_procedimento.nome_procedimento_estudo',
+    'dados_participante_visita_procedimento_executor.dados_pessoa_executor.ds_nome',
+    'dados_visita_procedimento.opcional',
+    'dados_visita_procedimento.disponibilidade',
+    'co_visita_procedimento',
+    'dados_nota_fiscal.codigo_nota_fiscal'
+
+
+]]
+procedimentos_extras=dim_visita_procedimentos.copy()
+
+# Renomeando as colunas
+procedimentos_extras.rename(columns={
+    'dados_protocolo_procedimento.co_protocolo': 'co_protocolo',
+    'dados_participante_visita.co_participante':'co_participante',
+    'dados_participante_visita.nome_tarefa': 'Visita',
+    'data_executada':'Data Executada',
+    'opcional': 'Tipo de procedimento' ,
+    'dados_protocolo_procedimento.nome_procedimento_estudo': 'Procedimento',
+    'dados_participante_visita_procedimento_executor.dados_pessoa_executor.ds_nome':'Executor',
+    'dados_visita_procedimento.opcional': 'Opcional 2',
+    'dados_visita_procedimento.disponibilidade': 'Disponibilidade',
+    'co_visita_procedimento': 'Codigo Procedimentos',
+    'dados_nota_fiscal.codigo_nota_fiscal':'codigo_nota_fiscal'
+    }, inplace=True)
+
+# Merge com a tabela protocolo para obter os dados dos estudos
+protocolo = df_protocolo[[
+    'id',
+    'apelido_protocolo',
+    'dados_co_centro',
+    'dados_tipo_de_iniciativa'
+    ]].copy()
+
+
+extrair = ['dados_co_centro','dados_tipo_de_iniciativa']
+for coluna in extrair:
+    protocolo[coluna] = protocolo[coluna].apply(extrair_ultima_informacao)
+    
+protocolo.rename(columns={
+    'id':'co_protocolo',
+    'apelido_protocolo': 'Protocolo',
+    'dados_co_centro':'Centro',
+    'dados_tipo_de_iniciativa': 'Iniciativa'
+    }, inplace=True)
+procedimentos_extras = procedimentos_extras.merge(protocolo, how = 'left', on='co_protocolo')
+
+# Merge com a tabela Participantes para obter os dados do participante
+participantes = df_participantes[[
+    'id',
+    'id_participante',
+    'dados_status',
+    'Braco'
+    ]].copy()
+
+extrair2 = ['dados_status','Braco']
+for coluna in extrair2:
+    participantes[coluna] = participantes[coluna].apply(extrair_ultima_informacao)
+    
+participantes.rename(columns={
+    'id':'co_participante',
+    'id_participante': 'Participante',
+    'dados_status': 'Status do participante',
+    'Braco': 'Braço no estudo'
+    }, inplace=True)
+
+procedimentos_extras = procedimentos_extras.merge(participantes, how = 'left', on='co_participante')
+
+# Reordenando a nova tabela para melhor exibição
+procedimentos_extras=procedimentos_extras[[
+    'Protocolo','Iniciativa', 'Centro', 'Participante', 'Status do participante', 'Visita','Braço no estudo','Data Executada', 'Procedimento', 'Executor'
+]]
+
+#Categorizando a coluna data
+colunas_data = ['Data Executada']
+
+# Converte cada coluna de data separadamente para melhorar o desempenho
+for coluna in colunas_data:
+    procedimentos_extras[coluna] = pd.to_datetime(procedimentos_extras[coluna], errors='coerce').dt.tz_localize(None)
+    
+# Filtrando os estudos patrocinados
+filtro3 = ['Patrocinador']
+procedimentos_extras=procedimentos_extras[procedimentos_extras['Iniciativa'].isin(filtro3)]
+
+# Exibindo somente os dados duplicados quanto ao protocolo, centro, participante, visita, data do procedimento e procedimento.
+procedimentos_extras = procedimentos_extras[procedimentos_extras.duplicated(subset =['Protocolo', 'Centro', 'Participante','Visita','Data Executada','Procedimento'], keep=False)]
+
+# # Filtrar o período de interesse
+procedimentos_duplicados = procedimentos_extras[
+    (procedimentos_extras['Data Executada']>= ultima_semana) #Após a primeira leva, alterar para delay de 1 semana
+]
+# Primeira período para titulo do email
+if not procedimentos_duplicados.empty:
+    procedimentos_duplicados_min = procedimentos_duplicados['Data Executada'].min().strftime('%d/%m/%Y')
+    procedimentos_duplicados_max = procedimentos_duplicados['Data Executada'].max().strftime('%d/%m/%Y')
+else:
+    procedimentos_duplicados_min = None
+    procedimentos_duplicados_max = None
+
+# Elaborando o título do email
+subject_email =(
+   f'Não existem estudos com procedimentos duplicados'
+   if procedimentos_duplicados_min==None
+   else f'As visitas realizadas em {procedimentos_duplicados_min} não possuem procedimentos duplicados'
+      if procedimentos_duplicados_min == procedimentos_duplicados_max
+      else f'As visitas realizadas entre {procedimentos_duplicados_min} e {procedimentos_duplicados_max} apresentam procedimentos duplicados'
+)
+
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='procedimentos_duplicados.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
+# Função para criar a tabela do corpo do email 
+def filtrar_protocolo_procedimentos_duplicados(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Executada'].notna(), :]
+
+# Verificar se o DataFrame filtrado está vazio
+    if procedimentos_duplicados.empty:
+        return "Sem procedimentos Condicionais e/ou Extras"
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = procedimentos_duplicados.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+procedimentos_duplicados_html = filtrar_protocolo_procedimentos_duplicados(procedimentos_duplicados)
+
+# Função de envio do e-mail
+def enviar_email_protocolos_procedimentos_duplicados():
+    try:
+        if procedimentos_duplicados.empty:
+            print("Não foram detectados procedimentos condicionais e/ou extras")
+            return
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(procedimentos_duplicados)
+
+        msg = MIMEMultipart("related")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>{subject_email}</h2>
+                
+                <p>{procedimentos_duplicados_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="procedimentos_duplicados.xlsx"'
+        )
+        msg.attach(part)
+        
+        # Enviar o e-mail
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"{subject_email}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_protocolos_procedimentos_duplicados()
