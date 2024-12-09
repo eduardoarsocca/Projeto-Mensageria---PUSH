@@ -1538,6 +1538,13 @@ visitas_realizadas_no_periodo_min = visitas_realizadas['Data da visita realizada
 
 visitas_realizadas_no_periodo_max =visitas_realizadas['Data da visita realizada'].max().strftime('%d/%m/%Y')
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='visitas_realizadas.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_visitas_realizadas(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
@@ -1570,6 +1577,9 @@ def enviar_email_visitas_realizadas():
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
         
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(visitas_realizadas)
+        
         # Corpo do e-mail simplificado
         body = f"""
         <html>
@@ -1582,6 +1592,16 @@ def enviar_email_visitas_realizadas():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="visitas_realizadas.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -1694,6 +1714,13 @@ proximas_visitas_no_periodo_min = proximas_visitas['Data Prevista'].min().strfti
 
 proximas_visitas_no_periodo_max =proximas_visitas['Data Prevista'].max().strftime('%d/%m/%Y')
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='proximas_visitas.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_proximas_visitas(dataframe):
     # Filtrar contratos com data de assinatura não nula
@@ -1726,6 +1753,9 @@ def enviar_email_proximas_visitas():
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
         
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(proximas_visitas)
+        
         # Corpo do e-mail simplificado
         body = f"""
         <html>
@@ -1738,6 +1768,16 @@ def enviar_email_proximas_visitas():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="proximas_visitas.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -1873,6 +1913,13 @@ else:
     eos_eot_no_periodo_min = None
     eos_eot_no_periodo_max = None
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='eos_eot.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_eos_eot(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
@@ -1905,6 +1952,9 @@ def enviar_email_eos_eot():
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
         
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(eos_eot)
+        
         # Corpo do e-mail simplificado
         body = f"""
         <html>
@@ -1917,6 +1967,16 @@ def enviar_email_eos_eot():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="eos_eot.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -2026,6 +2086,13 @@ subject_email =(
    else f'Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
 )
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='flowchart.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_flowchart(dataframe):
     # Filtrar contratos com data de assinatura não nula
@@ -2053,6 +2120,9 @@ def enviar_email_flowchart():
             print("NENHUMA FLOWCHART APROVADO NO PERÍODO")
             return
 
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(flowchart)
+        
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
@@ -2071,6 +2141,16 @@ def enviar_email_flowchart():
         """
         msg.attach(MIMEText(body, 'html'))
 
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="flowchart.xlsx"'
+        )
+        msg.attach(part)
+        
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
             server.login(username_email, password_email)
@@ -2185,6 +2265,14 @@ subject_email =(
    else f'Os protocolos cadastrados entre {dim_protocolo_financeiro_min} e {dim_protocolo_financeiro_max} não apresentam moeda cadastrada'
 )
 subject_email
+
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='dim_protocolo_financeiro.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_protocolo_financeiro(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
@@ -2215,6 +2303,9 @@ def enviar_email_protocolos_sem_moeda():
         # Gerar o gráfico e obter o buffer da imagem
         imagem_buffer = figura_barra_sem_moeda()
 
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(dim_protocolo_financeiro)
+        
         msg = MIMEMultipart("related")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
@@ -2238,6 +2329,16 @@ def enviar_email_protocolos_sem_moeda():
         imagem_anexo = MIMEImage(imagem_buffer.read(), subtype='png')
         imagem_anexo.add_header('Content-ID', '<imagem1>')
         msg.attach(imagem_anexo)
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="dim_protocolo_financeiro.xlsx"'
+        )
+        msg.attach(part)
         
         # Enviar o e-mail
         with smtplib.SMTP(server_email, port_email) as server:
@@ -2315,6 +2416,14 @@ subject_email =(
       if sem_centro_min == sem_centro_max
       else f'Os protocolos cadastrados entre {sem_centro_min} e {sem_centro_max} não apresentam centro cadastrado'
 )
+
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='estudos_sem_centro.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_protocolo_sem_centro(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
@@ -2342,7 +2451,8 @@ def enviar_email_protocolos_sem_centro():
             print("Todos os protocolos estão com centro cadastrada")
             return
         
-        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(sem_centro)
 
         msg = MIMEMultipart("related")
         msg['From'] = username_email
@@ -2362,7 +2472,15 @@ def enviar_email_protocolos_sem_centro():
         """
         msg.attach(MIMEText(body, 'html'))
         
-
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="estudos_sem_centro.xlsx"'
+        )
+        msg.attach(part)
         
         # Enviar o e-mail
         with smtplib.SMTP(server_email, port_email) as server:
