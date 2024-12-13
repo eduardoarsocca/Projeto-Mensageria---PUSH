@@ -22,11 +22,21 @@ from io import BytesIO
 import base64
 from email.mime.image import MIMEImage
 import openpyxl
+import time
+
+# TODO: Início do timer
+start_time = time.time()
+
+print("Iniciando a execução do projeto...")
+for i in range (1000000):
+    pass
+        
 
 
 #----------------------------------------------------------------------------------------------- 
 # TODO: Carregar as variáveis de ambiente
-load_dotenv()
+load_dotenv(override=True)
+
 
 api_username = os.getenv('API_USERNAME')
 api_password = os.getenv('API_PASSWORD')
@@ -387,6 +397,12 @@ def filtrar_contratos_sem_data(dataframe):
 # Usando a função
 contrato_sem_data_html = filtrar_contratos_sem_data(contrato_sem_data)
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='contrato_sem_data.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
 
 def enviar_email():
     try:
@@ -399,6 +415,9 @@ def enviar_email():
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = "Contratos assinados sem data de assinatura"
         
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(contrato_sem_data)
+        
         # Corpo do e-mail simplificado
         body = f"""
         <html>
@@ -410,6 +429,16 @@ def enviar_email():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="contrato_sem_data.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -466,7 +495,14 @@ def filtrar_contratos_aniversario(dataframe, anos=3):
         return dataframe_filtrado.to_html(index=False)
 
 # Chamando a função
-contrato_assinado_html = filtrar_contratos_aniversario(contrato_assinado, anos=3) 
+contrato_assinado_html = filtrar_contratos_aniversario(contrato_assinado, anos=3)
+
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='contrato_assinado_aniversario.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer 
 
 def enviar_email_aniversario():
     try:
@@ -478,6 +514,9 @@ def enviar_email_aniversario():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = "Aniversário de contratos"
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(contrato_assinado_aniversario)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -492,6 +531,16 @@ def enviar_email_aniversario():
         """
         msg.attach(MIMEText(body, 'html'))
 
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="contrato_assinado_aniversario.xlsx"'
+        )
+        msg.attach(part)
+        
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
             server.login(username_email, password_email)
@@ -567,7 +616,12 @@ def filtrar_submissao_regulatorio(dataframe, anos=3):
 # Chamando a função
 dim_regulatorio_aniversario_html = filtrar_submissao_regulatorio(dim_regulatorio_aniversario) 
 
-
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='dim_regulatorio_aniversario.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
 
 def enviar_email_submissao_regulatorio():
     try:
@@ -579,6 +633,9 @@ def enviar_email_submissao_regulatorio():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(dim_regulatorio_aniversario)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -593,6 +650,16 @@ def enviar_email_submissao_regulatorio():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="dim_regulatorio_aniversario.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -675,7 +742,12 @@ def filtrar_aprovacao_regulatorio(dataframe, anos=3):
 # Chamando a função
 dim_regulatorio_aprovacao_html = filtrar_aprovacao_regulatorio(dim_regulatorio_aprovacao) 
 
-
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='dim_regulatorio_aprovacao.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
 
 def enviar_email_aprovacao_regulatorio():
     try:
@@ -687,6 +759,9 @@ def enviar_email_aprovacao_regulatorio():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(dim_regulatorio_aprovacao)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -701,6 +776,16 @@ def enviar_email_aprovacao_regulatorio():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="dim_regulatorio_aprovacao.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -802,6 +887,13 @@ def filtrar_siv(dataframe, anos=3):
 # Chamando a função
 siv_html = filtrar_siv(siv)
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='siv.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função de envio do e-mail
 def enviar_email_siv():
     try:
@@ -813,6 +905,9 @@ def enviar_email_siv():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = subject_email
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(siv)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -826,6 +921,16 @@ def enviar_email_siv():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="siv.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -931,6 +1036,13 @@ def filtrar_cov(dataframe, anos=3):
 # Chamando a função
 cov_html = filtrar_cov(cov)
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='cov.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função de envio do e-mail
 def enviar_email_cov():
     try:
@@ -942,6 +1054,9 @@ def enviar_email_cov():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = subject_email
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(cov)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -955,6 +1070,16 @@ def enviar_email_cov():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="cov.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -1076,9 +1201,14 @@ def filtrar_primeiro_tcle_assinado(dataframe, anos=3):
         return dataframe_filtrado.to_html(index=False)
 
 # Chamando a função
-primeiro_tcle_assinadoo_html = filtrar_primeiro_tcle_assinado(primeiro_tcle_assinado) 
+primeiro_tcle_assinado_html = filtrar_primeiro_tcle_assinado(primeiro_tcle_assinado) 
 
-
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='primeiro_tcle_assinado.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
 
 def enviar_email_primeiro_tcle_assinado():
     try:
@@ -1091,6 +1221,9 @@ def enviar_email_primeiro_tcle_assinado():
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
         
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(primeiro_tcle_assinado)
+        
         # Corpo do e-mail simplificado
         body = f"""
         <html>
@@ -1098,12 +1231,22 @@ def enviar_email_primeiro_tcle_assinado():
             <body>
                 <h2>Protocolos aprovados pelo órgão regulatório </h2>
                 
-                <p>{primeiro_tcle_assinadoo_html}</p>
+                <p>{primeiro_tcle_assinado_html}</p>
                 <p>Eu vim para te mandar mensagens, mua ha ha</p>
             </body>
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="primeiro_tcle_assinado.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -1228,7 +1371,12 @@ def filtrar_dim_evento_adverso(dataframe, anos=3):
 # Chamando a função
 dim_evento_adverso_html = filtrar_dim_evento_adverso(dim_evento_adverso) 
 
-
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='dim_evento_adverso.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
 
 def enviar_email_evento_adverso():
     try:
@@ -1240,6 +1388,9 @@ def enviar_email_evento_adverso():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(dim_evento_adverso)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -1254,6 +1405,16 @@ def enviar_email_evento_adverso():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="dim_evento_adverso.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -1401,6 +1562,13 @@ def filtrar_primeira_visita(dataframe, anos=3):
 # Chamando a função
 primeira_visita_html = filtrar_primeira_visita(primeira_visita)
 
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='primeira_visita.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
 # Função de envio do e-mail
 def enviar_email_primeira_visita():
     try:
@@ -1412,6 +1580,9 @@ def enviar_email_primeira_visita():
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
         msg['Subject'] = f"O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(primeira_visita)
         
         # Corpo do e-mail simplificado
         body = f"""
@@ -1426,6 +1597,16 @@ def enviar_email_primeira_visita():
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="primeira_visita.xlsx"'
+        )
+        msg.attach(part)
 
         with smtplib.SMTP(server_email, port_email) as server:
             server.starttls()
@@ -2546,11 +2727,13 @@ valore_duplicados=dim_recebimentos['codigo_nota_fiscal'].duplicated(keep=False)
 invoices_duplicadas=dim_recebimentos[valore_duplicados]
 
 # Tratameto da coluna de datas
-invoices_duplicadas['data_emissao']= pd.to_datetime(invoices_duplicadas['data_emissao']).dt.tz_localize(None)
+invoices_duplicadas.loc[:, 'data_emissao']= pd.to_datetime(invoices_duplicadas['data_emissao']).dt.tz_localize(None)
 
 # Classificando os dados em ordem crescente
 invoices_duplicadas=invoices_duplicadas.sort_values(by='codigo_nota_fiscal', ascending = True)
 
+# Excluindo valores nulos
+invoices_duplicadas = invoices_duplicadas[invoices_duplicadas['data_emissao'].notna()]
 
 # Períodos para titulo do email
 if not invoices_duplicadas.empty:
@@ -2727,21 +2910,24 @@ colunas_data = ['Data Realizada']
 # Converte cada coluna de data separadamente para melhorar o desempenho
 for coluna in colunas_data:
     fato_visitas_nf[coluna] = pd.to_datetime(fato_visitas_nf[coluna], errors='coerce').dt.tz_localize(None)
-iniciativa = df_protocolo[['id', 'dados_tipo_de_iniciativa']]
+
+iniciativa = df_protocolo[['id', 'dados_tipo_de_iniciativa']].copy()
+
 iniciativa.rename(columns={
     'id':'co_protocolo',
-    'dados_tipo_de_iniciativa': 'Iniciatita'
+    'dados_tipo_de_iniciativa': 'Iniciativa'
     }, inplace=True)
 
 colunas_a_extrair_recebimento=[
-    'Iniciatita'
+    'Iniciativa'
 ]
 
 for coluna in colunas_a_extrair_recebimento:
-    iniciativa[coluna] = iniciativa[coluna].apply(extrair_ultima_informacao)
+    iniciativa.loc[:, coluna] = iniciativa[coluna].apply(extrair_ultima_informacao)
+    
 fato_visitas_nf = fato_visitas_nf.merge(iniciativa, how = 'left', on='co_protocolo')
 tipo_de_estudo =['Patrocinador']
-fato_visitas_nf=fato_visitas_nf[fato_visitas_nf['Iniciatita'].isin(tipo_de_estudo)]
+fato_visitas_nf=fato_visitas_nf[fato_visitas_nf['Iniciativa'].isin(tipo_de_estudo)]
 
 filtro_visita=['Particularidades do Financeiro ']
 fato_visitas_nf=fato_visitas_nf[~fato_visitas_nf['Visita'].isin(filtro_visita)]
@@ -2749,7 +2935,7 @@ fato_visitas_nf = fato_visitas_nf[fato_visitas_nf['Visita'].notna()]
 
 fato_visitas_nf = fato_visitas_nf[['id_participante',
                                    'Protocolo',
-                                   'Iniciatita',
+                                   'Iniciativa',
                                    'Visita',
                                    'Data Realizada',
                                    'Status da visita',
@@ -2770,12 +2956,14 @@ subject_email =(
       else f'As visitas realizadas entre {fato_visitas_nf_min} e {fato_visitas_nf_max} não possuem nota fiscal ou invoice vinculada'
 )
 subject_email
+
 # Salvando o DataFrame em um arquivo Excel
 def salvar_dataframe_como_excel(dataframe, filename='visitas_sem_nf.xlsx'):
     buffer = BytesIO()
     dataframe.to_excel(buffer, index=False, engine='openpyxl')
     buffer.seek(0)
     return buffer
+
 # Função para criar a tabela do corpo do email 
 def filtrar_protocolo_fato_visitas_nf(dataframe, anos=3):
     # Filtrar contratos com data de assinatura não nula
@@ -3230,3 +3418,14 @@ def enviar_email_protocolos_procedimentos_duplicados():
         print(f"Erro ao enviar o e-mail: {e}")
 
 enviar_email_protocolos_procedimentos_duplicados()
+
+
+#TODO: Fim do tempo de execução (parada do cronômetro)
+print("Execução Finalizada")
+
+#Registrando o tempo de parada
+end_time = time.time()
+
+#Calculando o tempo de execução do projeto
+tempo_execucao = end_time - start_time
+print (f"Tempo total de execução: {tempo_execucao:.2f} segundo")
