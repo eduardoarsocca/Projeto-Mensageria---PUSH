@@ -183,7 +183,6 @@ token = response.json()["token"]
 # Incorporando a string Bearer para inserir
 if token:
     auth_token = "Bearer " + token
-    # print(f"Auth Token: {auth_token}")
 else:
     print("Falha ao obter o token.")
     
