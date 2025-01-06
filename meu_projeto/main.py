@@ -413,7 +413,7 @@ def enviar_email():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = "Contratos assinados sem data de assinatura"
+        msg['Subject'] = "Atualização semanal: Contratos assinados sem data de assinatura"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(contrato_sem_data)
@@ -513,7 +513,7 @@ def enviar_email_aniversario():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = "Aniversário de contratos"
+        msg['Subject'] = "Atualização semanal: Aniversário de contratos"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(contrato_assinado_aniversario)
@@ -632,7 +632,7 @@ def enviar_email_submissao_regulatorio():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
+        msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(dim_regulatorio_aniversario)
@@ -758,7 +758,7 @@ def enviar_email_aprovacao_regulatorio():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
+        msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(dim_regulatorio_aprovacao)
@@ -862,9 +862,9 @@ else:
     siv_no_periodo_max = None
     
 subject_email =(
-   f'SiV agendada na data {siv_no_periodo_min}'
+   f'Atualização semanal: SiV agendada na data {siv_no_periodo_min}'
    if siv_no_periodo_min == siv_no_periodo_max
-   else f'SiVs agendadas nas datas {siv_no_periodo_min} e {siv_no_periodo_max}'
+   else f'Atualização semanal: SiVs agendadas nas datas {siv_no_periodo_min} e {siv_no_periodo_max}'
 )
 
 # Função para criar a tabela do corpo do email 
@@ -1011,9 +1011,9 @@ else:
 
 # CONFIGURANDO O TÍTULO DO E-MAIL
 subject_email =(
-   f'COV agendada na data {cov_no_periodo_min}'
+   f'Atualização semanal: COV agendada na data {cov_no_periodo_min}'
    if cov_no_periodo_min == cov_no_periodo_max
-   else f'covs agendadas nas datas {cov_no_periodo_min} e {cov_no_periodo_max}'
+   else f'Atualização semanal: COVs agendadas nas datas {cov_no_periodo_min} e {cov_no_periodo_max}'
 )
 
 # Função para criar a tabela do corpo do email 
@@ -1219,7 +1219,7 @@ def enviar_email_primeiro_tcle_assinado():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
+        msg['Subject'] = f"Atualização semanal: Protocolo {primeiro_tcle_assinado_reg} teve seu primeiro TCLE Assinado na data {data_protocolo_aprovacao_reg}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(primeiro_tcle_assinado)
@@ -1387,7 +1387,7 @@ def enviar_email_evento_adverso():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
+        msg['Subject'] = f"Atualização semanal: Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(dim_evento_adverso)
@@ -1579,7 +1579,7 @@ def enviar_email_primeira_visita():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
+        msg['Subject'] = f"Atualização semanal: O Estudo {protocolo_primeira_visita_reg} teve sua primeira visita em {data_primeira_visita_reg}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(primeira_visita)
@@ -1756,7 +1756,7 @@ def enviar_email_visitas_realizadas():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
+        msg['Subject'] = f"Atualização semanal: Visitas realizadas entre {visitas_realizadas_no_periodo_min} e {visitas_realizadas_no_periodo_max}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(visitas_realizadas)
@@ -1932,7 +1932,7 @@ def enviar_email_proximas_visitas():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
+        msg['Subject'] = f"Atualização semanal: Agenda Polotrial - Proximas visitas. Período: {proximas_visitas_no_periodo_min} - {proximas_visitas_no_periodo_max}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(proximas_visitas)
@@ -2131,7 +2131,7 @@ def enviar_email_eos_eot():
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
         msg['Bcc'] = ', '.join(enviar_para)
-        msg['Subject'] = f"Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
+        msg['Subject'] = f"Atualização semanal: Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
         
         # Criação do arquivo Excel em memória
         excel_file = salvar_dataframe_como_excel(eos_eot)
@@ -2262,9 +2262,9 @@ else:
     flowchart_no_periodo_max = None
 
 subject_email =(
-   f'Flowchart aprovado em {flowchart_no_periodo_min}'
+   f'Atualização semanal: Flowchart aprovado em {flowchart_no_periodo_min}'
    if flowchart_no_periodo_min == flowchart_no_periodo_max
-   else f'Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
+   else f'Atualização semanal: Flowcharts aprovados em: {flowchart_no_periodo_min} e {flowchart_no_periodo_max}'
 )
 
 # Salvando o DataFrame em um arquivo Excel
@@ -2441,9 +2441,9 @@ else:
     dim_protocolo_financeiro_max = None
     
 subject_email =(
-   f'Protocolos cadastrado em {dim_protocolo_financeiro_min} não contem moeda cadastrada'
+   f'Atualização semanal: Protocolos cadastrado em {dim_protocolo_financeiro_min} não contem moeda cadastrada'
    if dim_protocolo_financeiro_min == dim_protocolo_financeiro_max
-   else f'Os protocolos cadastrados entre {dim_protocolo_financeiro_min} e {dim_protocolo_financeiro_max} não apresentam moeda cadastrada'
+   else f'Atualização semanal: Os protocolos cadastrados entre {dim_protocolo_financeiro_min} e {dim_protocolo_financeiro_max} não apresentam moeda cadastrada'
 )
 subject_email
 
@@ -2591,11 +2591,11 @@ else:
     sem_centro_max = None
     
 subject_email =(
-   f'Todos os protocolos cadastrados tem o campo "Centro" preenchido'
+   f'Atualização semanal: Todos os protocolos cadastrados tem o campo "Centro" preenchido'
    if sem_centro_min==None
-   else f'Protocolos cadastrado em {sem_centro_min} não contem o centro cadastrado'
+   else f'Atualização semanal: Protocolos cadastrado em {sem_centro_min} não contem o centro cadastrado'
       if sem_centro_min == sem_centro_max
-      else f'Os protocolos cadastrados entre {sem_centro_min} e {sem_centro_max} não apresentam centro cadastrado'
+      else f'Atualização semanal: Os protocolos cadastrados entre {sem_centro_min} e {sem_centro_max} não apresentam centro cadastrado'
 )
 
 # Salvando o DataFrame em um arquivo Excel
@@ -2745,11 +2745,11 @@ else:
 
 # Texto personalizado  
 subject_email =(
-   f'Não existem invoices duplicadas'
+   f'Atualização semanal: Não existem invoices duplicadas'
    if invoices_duplicadas_min==None
-   else f'A Invoice ou NF cadastrada em {invoices_duplicadas_min} possui duplicata'
+   else f'Atualização semanal: A Invoice ou NF cadastrada em {invoices_duplicadas_min} possui duplicata'
       if invoices_duplicadas_min == invoices_duplicadas_max
-      else f'As invoices ou Notas fiscais cadastradas entre {invoices_duplicadas_min} e {invoices_duplicadas_max} possuem duplicatas'
+      else f'Atualização semanal: As invoices ou Notas fiscais cadastradas entre {invoices_duplicadas_min} e {invoices_duplicadas_max} possuem duplicatas'
 )
 
 # Salvando o DataFrame em um arquivo Excel
@@ -2949,11 +2949,11 @@ else:
     fato_visitas_nf_min = None
     fato_visitas_nf_max = None
 subject_email =(
-   f'Não existem sem nota fiscal ou invoice vinculada'
+   f'Atualização semanal: Não existem sem nota fiscal ou invoice vinculada'
    if fato_visitas_nf_min==None
-   else f'As visitas realizadas em {fato_visitas_nf_min} não possuem nota fiscal ou invoice vinculada'
+   else f'Atualização semanal: As visitas realizadas em {fato_visitas_nf_min} não possuem nota fiscal ou invoice vinculada'
       if fato_visitas_nf_min == fato_visitas_nf_max
-      else f'As visitas realizadas entre {fato_visitas_nf_min} e {fato_visitas_nf_max} não possuem nota fiscal ou invoice vinculada'
+      else f'Atualização semanal: As visitas realizadas entre {fato_visitas_nf_min} e {fato_visitas_nf_max} não possuem nota fiscal ou invoice vinculada'
 )
 subject_email
 
@@ -3137,11 +3137,11 @@ else:
     procedimentos_extras_min = None
     procedimentos_extras_max = None
 subject_email =(
-   f'Não existem sem nota fiscal ou invoice vinculada'
+   f'Atualização semanal: Não existem sem nota fiscal ou invoice vinculada'
    if procedimentos_extras_min==None
-   else f'As visitas realizadas em {procedimentos_extras_min} não possuem procedimentos condicionais ou extras'
+   else f'Atualização semanal: As visitas realizadas em {procedimentos_extras_min} não possuem procedimentos condicionais ou extras'
       if procedimentos_extras_min == procedimentos_extras_max
-      else f'As visitas realizadas entre {procedimentos_extras_min} e {procedimentos_extras_max} apresentam procedimentos condicionais e/ou extras'
+      else f'Atualização semanal: As visitas realizadas entre {procedimentos_extras_min} e {procedimentos_extras_max} apresentam procedimentos condicionais e/ou extras'
 )
 subject_email
 # Salvando o DataFrame em um arquivo Excel
@@ -3333,11 +3333,11 @@ else:
 
 # Elaborando o título do email
 subject_email =(
-   f'Não existem estudos com procedimentos duplicados'
+   f'Atualização semanal: Não existem estudos com procedimentos duplicados'
    if procedimentos_duplicados_min==None
-   else f'As visitas realizadas em {procedimentos_duplicados_min} não possuem procedimentos duplicados'
+   else f'Atualização semanal: As visitas realizadas em {procedimentos_duplicados_min} não possuem procedimentos duplicados'
       if procedimentos_duplicados_min == procedimentos_duplicados_max
-      else f'As visitas realizadas entre {procedimentos_duplicados_min} e {procedimentos_duplicados_max} apresentam procedimentos duplicados'
+      else f'Atualização semanal: As visitas realizadas entre {procedimentos_duplicados_min} e {procedimentos_duplicados_max} apresentam procedimentos duplicados'
 )
 
 # Salvando o DataFrame em um arquivo Excel
