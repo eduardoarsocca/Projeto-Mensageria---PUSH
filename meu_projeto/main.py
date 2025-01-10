@@ -186,10 +186,6 @@ if token:
 else:
     print("Falha ao obter o token.")
     
-    
-    
-
-
 headers = {"Authorization": auth_token}
 
 # endregion
