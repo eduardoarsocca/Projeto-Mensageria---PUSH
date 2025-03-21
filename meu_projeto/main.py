@@ -23,6 +23,7 @@ import base64
 from email.mime.image import MIMEImage
 import openpyxl
 import time
+import unicodedata
 
 # TODO: Início do timer
 start_time = time.time()
@@ -3236,7 +3237,7 @@ procedimentos_extras=dim_visita_procedimentos[[
     'dados_nota_fiscal.codigo_nota_fiscal'
 ]]
 
-procedimentos_extras=dim_visita_procedimentos.copy()
+# procedimentos_extras=dim_visita_procedimentos.copy()
 
 # Renomeando as colunas
 procedimentos_extras.rename(columns={
@@ -3414,6 +3415,194 @@ def enviar_email_protocolos_procedimentos_duplicados():
 
 enviar_email_protocolos_procedimentos_duplicados()
 
+#TODO Executores
+dim_procedimentos_executores = df_visita_procedimentos[[
+    'id',
+    'co_participante_visita',
+    'data_executada',
+    'dados_participante_visita.nome_tarefa',
+    'dados_participante_visita.data_realizada',
+    'dados_protocolo_procedimento.nome_procedimento_estudo',
+    'dados_participante_visita_procedimento_executor.data_realizada',
+    'dados_participante_visita_procedimento_executor.dados_pessoa_executor.ds_nome'
+    ]].copy()
+agenda_executor = df_participante_visita.copy()
+# #Extrair apelido_protocolo
+# agenda['apelido_protocolo'] = agenda['dados_participante'].apply(extrair_apelido_protocolo)
+#a coluna dados_participante contem o seguinte dado: {'id': 54, 'co_protocolo': 4, 'id_participante': '1001', 'id_instituicao': '5684766', 'co_voluntario': 54, 'dados_protocolo': {'id': 4, 'apelido_protocolo': 'BTK'}, 'dados_voluntario': {'id': 54, 'iniciais': 'A.M.G', 'co_externo': '4-1001'}}
+#como Extrair apelido_protocolo, neste caso BTK?
+agenda_executor['apelido_protocolo'] = agenda_executor['dados_participante'].apply(lambda x: x['dados_protocolo']['apelido_protocolo'])
+agenda_executor['status_visita'] = agenda_executor['dados_status'].apply(lambda x: x['ds_descricao'])
+
+agenda_executor['nome_responsavel'] = agenda_executor['dados_responsavel'].apply(lambda x: x['ds_nome'] if x is not None else None)
+# #Extrair nome do responsável
+agenda_executor['Participante'] = agenda_executor['dados_participante'].apply(lambda x: x['id_participante'] if x is not None else None)
+
+agenda_executor_filtrada = agenda_executor[[
+    'id',
+    'apelido_protocolo',
+    'nome_tarefa',
+    'nome_responsavel',
+    'data_realizada',
+    'status_visita',
+    'Participante'
+    
+]].copy()
+#renomear colunas
+agenda_executor_filtrada.columns = ['co_participante_visita',  'Protocolo', 'Visita', 'Responsável', 'Data Realizada', 'Status da visita', 'Participante']
+#renomear colunas
+dim_procedimentos_executores.columns = ['id', 'co_participante_visita', 'Data Executada', 'Nome Visita', 'Data Realizada', 'Procedimento', 'Data Realizada Procedimento', 'Executor']
+#Unificando as tabelas
+executores = pd.merge(agenda_executor_filtrada, dim_procedimentos_executores, on='co_participante_visita', how='left')
+# reordenando o dataframe
+executores = executores[['Participante','Protocolo', 'Visita','Data Realizada_x','Status da visita', 'Procedimento','Responsável', 'Executor', 'Data Realizada Procedimento']]
+agenda_executor_teste = executores.copy()
+
+
+
+# Função para remover acentos e converter para minúsculas
+def normalize(text):
+    if not isinstance(text, str):
+        return text  # caso seja None ou algo diferente de string
+    # Normaliza unicode (NFD) e remove diacríticos
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(ch for ch in text if unicodedata.category(ch) != 'Mn')
+    return text.lower()
+
+#Filtrar para desconsiderar valores nulos
+mask = executores['Procedimento'].notnull()
+executores = executores[mask]
+
+
+# Supondo que seu DataFrame seja 'executores' e a coluna seja 'Procedimento'
+executores['proc_normalizado'] = executores['Procedimento'].apply(normalize)
+
+# Cria duas máscaras para filtrar
+mask_consulta = executores['proc_normalizado'].str.contains('consulta medica', na=False)
+mask_contato  = executores['proc_normalizado'].str.contains('contato telefonico', na=False)
+
+# Filtra o DataFrame
+executores = executores[mask_consulta | mask_contato]
+executores.info()
+
+#Categorizando a coluna data
+colunas_data = ['Data Realizada_x','Data Realizada Procedimento']
+
+# Converte cada coluna de data separadamente para melhorar o desempenho
+for coluna in colunas_data:
+    executores[coluna] = pd.to_datetime(executores[coluna], errors='coerce').dt.tz_localize(None)
+  
+executores.rename(columns={'Data Realizada_x': 'Data Realizada Visita'}, inplace=True)
+#filtrar visitas realizadas
+executores = executores[executores['Status da visita'] == 'Realizada']
+#Filtrar a coluna Data Realizada Visita a datas superiores a  1 de janeiro de 2024 sem usar a variàvel este_ano
+executores = executores[executores['Data Realizada Visita'] > '2024-01-01']
+# Filtrar a coluna executores para exibir somente as linhas com Executor ausente
+executores = executores[executores['Executor'].isnull()]
+
+
+# Primeira período para titulo do email
+if not executores.empty:
+    executores_min = executores['Data Realizada Visita'].min().strftime('%d/%m/%Y')
+    executores_max = executores['Data Realizada Visita'].max().strftime('%d/%m/%Y')
+else:
+    executores_min = None
+    executores_max = None
+
+# Elaborando o título do email para consultas médicas com executor
+subject_email =(
+   f'Atualização semanal: Não foram detectadas visitas com consulta médica no período.'
+   if executores_min==None
+   else f'Atualização semanal: Consultas médicas realizadas em {executores_min}'
+      if executores_min == executores_max
+      else f'Atualização semanal: Consultas médicas realizadas entre {executores_min} e {executores_max}'
+)
+
+# Salvando o DataFrame em um arquivo Excel
+def salvar_dataframe_como_excel(dataframe, filename='executores.xlsx'):
+    buffer = BytesIO()
+    dataframe.to_excel(buffer, index=False, engine='openpyxl')
+    buffer.seek(0)
+    return buffer
+
+# Função para criar a tabela do corpo do email 
+def filtrar_protocolo_executores(dataframe, anos=3):
+    # Filtrar contratos com data de assinatura não nula
+    dataframe = dataframe.loc[dataframe['Data Realizada Visita'].notna(), :]
+
+# Verificar se o DataFrame filtrado está vazio
+    if executores.empty:
+        # Formatar uma mensagem de email a ser enviada no email do destinatário, mesmo que não haja dados na tabela HTML
+        mensagerm_vazia= executores.style\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])\
+            .set_caption('Não foram detectadas visitas com consulta médica no período.')
+            
+        return mensagerm_vazia.to_html(index=False)
+        
+    else:
+        # Formatar o DataFrame para exibição em HTML
+        dataframe_filtrado = executores.style\
+            .format(precision=3, thousands=".", decimal=',')\
+            .format_index(str.upper, axis=1)\
+            .set_properties(**{'background-color': 'white'}, **{'color': 'black'})\
+            .set_table_styles([{'selector': 'td:hover', 'props': [('background-color', '#EC0E73')]}])
+
+        return dataframe_filtrado.to_html(index=False)
+
+# Chamando a função
+executores_html = filtrar_protocolo_executores(executores)
+
+# Função de envio do e-mail
+def enviar_email_protocolos_executores():
+    try:
+        if executores.empty:
+            print("Não foram detectadas visitas com consulta médica no período.")
+            # return
+        
+        # Criação do arquivo Excel em memória
+        excel_file = salvar_dataframe_como_excel(executores)
+
+        msg = MIMEMultipart("related")
+        msg['From'] = username_email
+        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Subject'] = subject_email
+        
+        # Corpo do e-mail simplificado
+        body = f"""
+        <html>
+            <head>{css_hover}</head>
+            <body>
+                <h2>{subject_email}</h2>
+                
+                <p>{executores_html}</p>
+                <p>Eu vim para te mandar mensagens, mua ha ha</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        
+        # Anexando o arquivo Excel
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(excel_file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename="executores.xlsx"'
+        )
+        msg.attach(part)
+        
+        # Enviar o e-mail
+        with smtplib.SMTP(server_email, port_email) as server:
+            server.starttls()
+            server.login(username_email, password_email)
+            server.send_message(msg)
+        print(f"{subject_email}")
+        
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+
+enviar_email_protocolos_executores()
 
 #TODO: Fim do tempo de execução (parada do cronômetro)
 print("Execução Finalizada")

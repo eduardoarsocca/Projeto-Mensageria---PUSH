@@ -1,3 +1,4 @@
 .env
 venv/
 teste.py
+app.py
