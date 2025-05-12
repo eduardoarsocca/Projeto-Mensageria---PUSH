@@ -23,7 +23,7 @@ import base64
 from email.mime.image import MIMEImage
 import openpyxl
 import time
-import unicodedata
+import unicodedata2 as unicodedata
 
 # TODO: Início do timer
 start_time = time.time()
@@ -46,10 +46,20 @@ api_url = os.getenv("API_URL")
 # TODO: Configurações do e-mail
 enviar_para = os.getenv('DESTINATARIO')
 print(f"Valor original do DESTINATARIO: {enviar_para}")
+
 if enviar_para:
     enviar_para = [email.strip() for email in enviar_para.split(',')]
 else:
     enviar_para = []
+
+enviar_para_dois = os.getenv('DESTINATARIO2')
+print(f"Valor original do DESTINATARIO: {enviar_para_dois}")
+
+if enviar_para_dois:
+    enviar_para_dois = [email.strip() for email in enviar_para_dois.split(',')]
+else:
+    enviar_para_dois = []
+
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
@@ -244,6 +254,11 @@ df_protocolo_financeiro = pd.DataFrame(df_protocolo_financeiro)
 rota_recebimento = api_url + "/recebimento?nested=true"
 df_recebimento = requests.get(rota_recebimento, headers = headers).json()
 df_recebimento = pd.DataFrame(df_recebimento)
+
+# TODO: Pagamentos
+rota_pagamentos = api_url + "/pagamento?nested=true"
+df_pagamento = requests.get(rota_pagamentos, headers = headers).json()
+df_pagamento = pd.DataFrame(df_pagamento)
 #--------------------------------------TRATAMENTOS-----------------------------------------------
 #TODO: Tratamento Protocolos
 dim_protocolo = df_protocolo[[
@@ -627,7 +642,7 @@ def enviar_email_submissao_regulatorio():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
         
         # Criação do arquivo Excel em memória
@@ -753,7 +768,7 @@ def enviar_email_aprovacao_regulatorio():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
         
         # Criação do arquivo Excel em memória
@@ -894,12 +909,12 @@ def salvar_dataframe_como_excel(dataframe, filename='siv.xlsx'):
 def enviar_email_siv():
     try:
         if siv.empty:
-            print("Nada a declarar sobre alteração de status de participantes")
+            print("Nada a declarar as SIVs")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Criação do arquivo Excel em memória
@@ -1048,7 +1063,7 @@ def enviar_email_cov():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Criação do arquivo Excel em memória
@@ -1382,7 +1397,7 @@ def enviar_email_evento_adverso():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
         
         # Criação do arquivo Excel em memória
@@ -2121,12 +2136,12 @@ eos_eot_html = filtrar_eos_eot(eos_eot)
 def enviar_email_eos_eot():
     try:
         if eos_eot.empty:
-            print("Nada a declarar sobre alteração de status de participantes")
+            print("Nada a declarar sobre EOS/EOT")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
         
         # Criação do arquivo Excel em memória
@@ -2302,7 +2317,7 @@ def enviar_email_flowchart():
         
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Corpo do e-mail simplificado
