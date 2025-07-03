@@ -23,7 +23,7 @@ import base64
 from email.mime.image import MIMEImage
 import openpyxl
 import time
-import unicodedata
+import unicodedata2 as unicodedata
 
 # TODO: Início do timer
 start_time = time.time()
@@ -46,10 +46,20 @@ api_url = os.getenv("API_URL")
 # TODO: Configurações do e-mail
 enviar_para = os.getenv('DESTINATARIO')
 print(f"Valor original do DESTINATARIO: {enviar_para}")
+
 if enviar_para:
     enviar_para = [email.strip() for email in enviar_para.split(',')]
 else:
     enviar_para = []
+
+enviar_para_dois = os.getenv('DESTINATARIO2')
+print(f"Valor original do DESTINATARIO: {enviar_para_dois}")
+
+if enviar_para_dois:
+    enviar_para_dois = [email.strip() for email in enviar_para_dois.split(',')]
+else:
+    enviar_para_dois = []
+
 username_email = os.getenv('EMAIL_USERNAME')
 password_email = os.getenv('EMAIL_PASSWORD')
 server_email = os.getenv('EMAIL_SERVER')
@@ -244,6 +254,11 @@ df_protocolo_financeiro = pd.DataFrame(df_protocolo_financeiro)
 rota_recebimento = api_url + "/recebimento?nested=true"
 df_recebimento = requests.get(rota_recebimento, headers = headers).json()
 df_recebimento = pd.DataFrame(df_recebimento)
+
+# TODO: Pagamentos
+rota_pagamentos = api_url + "/pagamento?nested=true"
+df_pagamento = requests.get(rota_pagamentos, headers = headers).json()
+df_pagamento = pd.DataFrame(df_pagamento)
 #--------------------------------------TRATAMENTOS-----------------------------------------------
 #TODO: Tratamento Protocolos
 dim_protocolo = df_protocolo[[
@@ -627,7 +642,7 @@ def enviar_email_submissao_regulatorio():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_submissao_reg} submetido para avaliação regulatória"
         
         # Criação do arquivo Excel em memória
@@ -753,7 +768,7 @@ def enviar_email_aprovacao_regulatorio():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Protocolo {apelidos_protocolo_aprovacao_reg} aprovado na avaliação regulatória"
         
         # Criação do arquivo Excel em memória
@@ -894,12 +909,12 @@ def salvar_dataframe_como_excel(dataframe, filename='siv.xlsx'):
 def enviar_email_siv():
     try:
         if siv.empty:
-            print("Nada a declarar sobre alteração de status de participantes")
+            print("Nada a declarar as SIVs")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Criação do arquivo Excel em memória
@@ -1048,7 +1063,7 @@ def enviar_email_cov():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Criação do arquivo Excel em memória
@@ -1382,7 +1397,7 @@ def enviar_email_evento_adverso():
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Evento Adverso relatado no Protocolo {nome_protocolo_ea_reg}. Evento ocorrido em {data_ea_reg}"
         
         # Criação do arquivo Excel em memória
@@ -2121,12 +2136,12 @@ eos_eot_html = filtrar_eos_eot(eos_eot)
 def enviar_email_eos_eot():
     try:
         if eos_eot.empty:
-            print("Nada a declarar sobre alteração de status de participantes")
+            print("Nada a declarar sobre EOS/EOT")
             return
 
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = f"Atualização semanal: Participantes que finalizaram o tratamento ou o Estudo entre {eos_eot_no_periodo_min} e {eos_eot_no_periodo_max}"
         
         # Criação do arquivo Excel em memória
@@ -2302,7 +2317,7 @@ def enviar_email_flowchart():
         
         msg = MIMEMultipart("alternative")
         msg['From'] = username_email
-        msg['Bcc'] = ', '.join(enviar_para)
+        msg['Bcc'] = ', '.join(enviar_para_dois)
         msg['Subject'] = subject_email
         
         # Corpo do e-mail simplificado
@@ -3416,6 +3431,12 @@ def enviar_email_protocolos_procedimentos_duplicados():
 enviar_email_protocolos_procedimentos_duplicados()
 
 #TODO Executores
+# Extrair os dados de recebimentos
+dim_recebimentos_executor = dim_recebimentos.copy()
+dim_recebimentos_executor = dim_recebimentos_executor[['id', 'codigo_nota_fiscal', 'dados_status_invoice']]
+dim_recebimentos_executor.rename(columns={'id': 'co_nota_fiscal', 'dados_status_invoice': 'status_invoice'}, inplace=True)
+
+# Extrair os dados de procedimentos executores
 dim_procedimentos_executores = df_visita_procedimentos[[
     'id',
     'co_participante_visita',
@@ -3427,16 +3448,26 @@ dim_procedimentos_executores = df_visita_procedimentos[[
     'dados_participante_visita_procedimento_executor.dados_pessoa_executor.ds_nome'
     ]].copy()
 agenda_executor = df_participante_visita.copy()
-# #Extrair apelido_protocolo
-# agenda['apelido_protocolo'] = agenda['dados_participante'].apply(extrair_apelido_protocolo)
-#a coluna dados_participante contem o seguinte dado: {'id': 54, 'co_protocolo': 4, 'id_participante': '1001', 'id_instituicao': '5684766', 'co_voluntario': 54, 'dados_protocolo': {'id': 4, 'apelido_protocolo': 'BTK'}, 'dados_voluntario': {'id': 54, 'iniciais': 'A.M.G', 'co_externo': '4-1001'}}
-#como Extrair apelido_protocolo, neste caso BTK?
+
+#Extrair apelido_protocolo
 agenda_executor['apelido_protocolo'] = agenda_executor['dados_participante'].apply(lambda x: x['dados_protocolo']['apelido_protocolo'])
+# Extrair o status da visita
 agenda_executor['status_visita'] = agenda_executor['dados_status'].apply(lambda x: x['ds_descricao'])
 
 agenda_executor['nome_responsavel'] = agenda_executor['dados_responsavel'].apply(lambda x: x['ds_nome'] if x is not None else None)
 # #Extrair nome do responsável
 agenda_executor['Participante'] = agenda_executor['dados_participante'].apply(lambda x: x['id_participante'] if x is not None else None)
+
+#extrair as informações de nota fiscal
+agenda_executor[['co_nota_fiscal', 'codigo_nota_fiscal']] = (
+    agenda_executor['dados_nota_fiscal']
+    .apply(
+        lambda x: pd.Series({
+            'co_nota_fiscal': x['id'],
+            'codigo_nota_fiscal': x['codigo_nota_fiscal']
+        }) if x is not None else pd.Series({'co_nota_fiscal': None, 'codigo_nota_fiscal': None})
+    )
+)
 
 agenda_executor_filtrada = agenda_executor[[
     'id',
@@ -3445,20 +3476,25 @@ agenda_executor_filtrada = agenda_executor[[
     'nome_responsavel',
     'data_realizada',
     'status_visita',
-    'Participante'
+    'Participante',
+    'co_nota_fiscal',
+    'codigo_nota_fiscal',
     
 ]].copy()
+
 #renomear colunas
-agenda_executor_filtrada.columns = ['co_participante_visita',  'Protocolo', 'Visita', 'Responsável', 'Data Realizada', 'Status da visita', 'Participante']
+agenda_executor_filtrada.columns = ['co_participante_visita',  'Protocolo', 'Visita', 'Responsável', 'Data Realizada', 'Status da visita', 'Participante','co_nota_fiscal','codigo_nota_fiscal']
+
 #renomear colunas
 dim_procedimentos_executores.columns = ['id', 'co_participante_visita', 'Data Executada', 'Nome Visita', 'Data Realizada', 'Procedimento', 'Data Realizada Procedimento', 'Executor']
+
 #Unificando as tabelas
 executores = pd.merge(agenda_executor_filtrada, dim_procedimentos_executores, on='co_participante_visita', how='left')
+
 # reordenando o dataframe
-executores = executores[['Participante','Protocolo', 'Visita','Data Realizada_x','Status da visita', 'Procedimento','Responsável', 'Executor', 'Data Realizada Procedimento']]
-agenda_executor_teste = executores.copy()
+executores = executores[['Participante','Protocolo', 'Visita','Data Realizada_x','Status da visita', 'Procedimento','Responsável', 'Executor', 'Data Realizada Procedimento', 'co_nota_fiscal','codigo_nota_fiscal']]
 
-
+# agenda_executor_teste = executores.copy()
 
 # Função para remover acentos e converter para minúsculas
 def normalize(text):
@@ -3499,6 +3535,9 @@ executores = executores[executores['Status da visita'] == 'Realizada']
 executores = executores[executores['Data Realizada Visita'] > '2024-01-01']
 # Filtrar a coluna executores para exibir somente as linhas com Executor ausente
 executores = executores[executores['Executor'].isnull()]
+
+#incluindo as informações sobre as notas fiscais e sua situação
+executores = pd.merge(executores, dim_recebimentos_executor, on='co_nota_fiscal', how='left')
 
 
 # Primeira período para titulo do email
