@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email import encoders
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -3346,7 +3346,7 @@ else:
 subject_email =(
    f'Atualização semanal: Não existem estudos com procedimentos duplicados'
    if procedimentos_duplicados_min==None
-   else f'Atualização semanal: As visitas realizadas em {procedimentos_duplicados_min} não possuem procedimentos duplicados'
+   else f'Atualização semanal: As visitas realizadas em {procedimentos_duplicados_min} apresentam procedimentos duplicados'
       if procedimentos_duplicados_min == procedimentos_duplicados_max
       else f'Atualização semanal: As visitas realizadas entre {procedimentos_duplicados_min} e {procedimentos_duplicados_max} apresentam procedimentos duplicados'
 )
